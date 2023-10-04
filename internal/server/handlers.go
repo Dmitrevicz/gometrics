@@ -1,4 +1,4 @@
-package internal
+package server
 
 import (
 	"encoding/json"
@@ -6,13 +6,16 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/Dmitrevicz/gometrics/internal/model"
+	"github.com/Dmitrevicz/gometrics/internal/storage"
 )
 
 type Handlers struct {
-	storage *Storage
+	storage *storage.Storage
 }
 
-func NewHandlers(storage *Storage) *Handlers {
+func NewHandlers(storage *storage.Storage) *Handlers {
 	return &Handlers{
 		storage: storage,
 	}
@@ -80,7 +83,7 @@ func (h *Handlers) updateGauge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.storage.Gauges.Set(paths[0], gauge(val))
+	h.storage.Gauges.Set(paths[0], model.Gauge(val))
 
 	w.WriteHeader(http.StatusOK)
 }
@@ -99,18 +102,19 @@ func (h *Handlers) updateCounter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.storage.Counters.Set(paths[0], counter(val))
+	h.storage.Counters.Set(paths[0], model.Counter(val))
 
 	w.WriteHeader(http.StatusOK)
 }
 
 type metricsResponse struct {
-	Gauges   map[string]gauge   `json:"gauges"`
-	Counters map[string]counter `json:"counters"`
+	Gauges   map[string]model.Gauge   `json:"gauges"`
+	Counters map[string]model.Counter `json:"counters"`
 }
 
 func (h *Handlers) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
+		// avoid cases when std mux drops in this handler when not needed
 		http.NotFound(w, r)
 		return
 	}

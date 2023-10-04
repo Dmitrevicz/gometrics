@@ -1,6 +1,10 @@
-package internal
+package server
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/Dmitrevicz/gometrics/internal/storage"
+)
 
 type server struct {
 	router   http.Handler
@@ -8,8 +12,8 @@ type server struct {
 	// storage  *Storage
 }
 
-func NewServer() *server {
-	storage := NewStorage()
+func New() *server {
+	storage := storage.New()
 	s := server{
 		router:   http.NewServeMux(),
 		handlers: NewHandlers(storage),

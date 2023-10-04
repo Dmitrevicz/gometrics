@@ -1,10 +1,9 @@
-package internal
+package storage
 
-import "sync"
+import (
+	"sync"
 
-type (
-	gauge   float64
-	counter int64
+	"github.com/Dmitrevicz/gometrics/internal/model"
 )
 
 // TODO: refactor with interfaces later
@@ -13,7 +12,7 @@ type Storage struct {
 	Counters *CountersMap
 }
 
-func NewStorage() *Storage {
+func New() *Storage {
 	return &Storage{
 		Gauges:   NewGaugesMap(),
 		Counters: NewCountersMap(),
@@ -22,16 +21,16 @@ func NewStorage() *Storage {
 
 type GaugesMap struct {
 	m      sync.RWMutex
-	gauges map[string]gauge
+	gauges map[string]model.Gauge
 }
 
 func NewGaugesMap() *GaugesMap {
 	return &GaugesMap{
-		gauges: make(map[string]gauge),
+		gauges: make(map[string]model.Gauge),
 	}
 }
 
-func (s *GaugesMap) Get(name string) (gauge, bool) {
+func (s *GaugesMap) Get(name string) (model.Gauge, bool) {
 	s.m.RLock()
 	defer s.m.RUnlock()
 
@@ -39,11 +38,11 @@ func (s *GaugesMap) Get(name string) (gauge, bool) {
 	return v, ok
 }
 
-func (s *GaugesMap) GetAll() map[string]gauge {
+func (s *GaugesMap) GetAll() map[string]model.Gauge {
 	s.m.RLock()
 	defer s.m.RUnlock()
 
-	res := make(map[string]gauge, len(s.gauges))
+	res := make(map[string]model.Gauge, len(s.gauges))
 
 	for k, v := range s.gauges {
 		res[k] = v
@@ -52,7 +51,7 @@ func (s *GaugesMap) GetAll() map[string]gauge {
 	return res
 }
 
-func (s *GaugesMap) Set(name string, value gauge) {
+func (s *GaugesMap) Set(name string, value model.Gauge) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
@@ -68,16 +67,16 @@ func (s *GaugesMap) Remove(name string) {
 
 type CountersMap struct {
 	m        sync.RWMutex
-	counters map[string]counter
+	counters map[string]model.Counter
 }
 
 func NewCountersMap() *CountersMap {
 	return &CountersMap{
-		counters: make(map[string]counter),
+		counters: make(map[string]model.Counter),
 	}
 }
 
-func (s *CountersMap) Get(name string) (counter, bool) {
+func (s *CountersMap) Get(name string) (model.Counter, bool) {
 	s.m.RLock()
 	defer s.m.RUnlock()
 
@@ -85,11 +84,11 @@ func (s *CountersMap) Get(name string) (counter, bool) {
 	return v, ok
 }
 
-func (s *CountersMap) GetAll() map[string]counter {
+func (s *CountersMap) GetAll() map[string]model.Counter {
 	s.m.RLock()
 	defer s.m.RUnlock()
 
-	res := make(map[string]counter, len(s.counters))
+	res := make(map[string]model.Counter, len(s.counters))
 
 	for k, v := range s.counters {
 		res[k] = v
@@ -98,7 +97,7 @@ func (s *CountersMap) GetAll() map[string]counter {
 	return res
 }
 
-func (s *CountersMap) Set(name string, value counter) {
+func (s *CountersMap) Set(name string, value model.Counter) {
 	s.m.Lock()
 	defer s.m.Unlock()
 

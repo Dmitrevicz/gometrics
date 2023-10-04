@@ -1,4 +1,4 @@
-package internal
+package server
 
 // http error messages
 const (
