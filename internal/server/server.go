@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	"github.com/Dmitrevicz/gometrics/internal/storage"
+	"github.com/Dmitrevicz/gometrics/internal/storage/memstorage"
 )
 
 type server struct {
@@ -13,7 +13,7 @@ type server struct {
 }
 
 func New() *server {
-	storage := storage.New()
+	storage := memstorage.New()
 	s := server{
 		router:   http.NewServeMux(),
 		handlers: NewHandlers(storage),

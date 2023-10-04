@@ -12,10 +12,10 @@ import (
 )
 
 type Handlers struct {
-	storage *storage.Storage
+	storage storage.Storage
 }
 
-func NewHandlers(storage *storage.Storage) *Handlers {
+func NewHandlers(storage storage.Storage) *Handlers {
 	return &Handlers{
 		storage: storage,
 	}
@@ -83,7 +83,7 @@ func (h *Handlers) updateGauge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.storage.Gauges.Set(paths[0], model.Gauge(val))
+	h.storage.Gauges().Set(paths[0], model.Gauge(val))
 
 	w.WriteHeader(http.StatusOK)
 }
@@ -102,7 +102,7 @@ func (h *Handlers) updateCounter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.storage.Counters.Set(paths[0], model.Counter(val))
+	h.storage.Counters().Set(paths[0], model.Counter(val))
 
 	w.WriteHeader(http.StatusOK)
 }
@@ -126,8 +126,8 @@ func (h *Handlers) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
 
 	var metrics metricsResponse
 
-	metrics.Gauges = h.storage.Gauges.GetAll()
-	metrics.Counters = h.storage.Counters.GetAll()
+	metrics.Gauges = h.storage.Gauges().GetAll()
+	metrics.Counters = h.storage.Counters().GetAll()
 
 	resp, err := json.Marshal(metrics)
 	if err != nil {
