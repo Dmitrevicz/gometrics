@@ -68,7 +68,7 @@ func (s *sender) Send(metrics *Metrics) {
 }
 
 // DefaultHTTPClientTimeoutSeconds - custom default http client timeout in seconds
-const DefaultHTTPClientTimeoutSeconds = 5
+const DefaultHTTPClientTimeoutSeconds = 10
 
 // NewClientDefault returns *http.Client with DefaultHTTPClientTimeoutSeconds timeout set
 func NewClientDefault() *http.Client {
