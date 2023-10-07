@@ -41,14 +41,15 @@ func (h *Handlers) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	metricName, metricValue := ShiftPath(r.URL.Path)
+
 	// check metric name
-	if r.URL.Path == "/" {
+	if r.URL.Path == "/" || strings.TrimSpace(metricName) == "" {
 		http.Error(w, ErrMsgEmptyMetricName, http.StatusNotFound)
 		return
 	}
 
 	// check metric value
-	_, metricValue := ShiftPath(r.URL.Path)
 	metricValue = strings.TrimPrefix(metricValue, "/")
 	if metricValue == "" {
 		http.Error(w, ErrMsgWrongMetricValue, http.StatusBadRequest)
