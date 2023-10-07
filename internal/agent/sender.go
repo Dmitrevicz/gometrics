@@ -13,12 +13,14 @@ import (
 type sender struct {
 	reportInterval int
 	poller         *poller
+	client         *http.Client
 }
 
 func NewSender(reportInterval int, poller *poller) *sender {
 	return &sender{
 		reportInterval: reportInterval,
 		poller:         poller,
+		client:         NewClientDefault(),
 	}
 }
 
@@ -78,9 +80,8 @@ func NewClientDefault() *http.Client {
 }
 
 func (s *sender) sendGauge(name string, value model.Gauge) error {
-	client := NewClientDefault()
 	url := fmt.Sprintf("http://localhost:8080/update/gauge/%s/%f", name, value)
-	resp, err := client.Post(url, "text/plain", nil)
+	resp, err := s.client.Post(url, "text/plain", nil)
 	if err != nil {
 		return fmt.Errorf("error while doing the request: %w", err)
 	}
@@ -99,9 +100,8 @@ func (s *sender) sendGauge(name string, value model.Gauge) error {
 }
 
 func (s *sender) sendCounter(name string, value model.Counter) error {
-	client := NewClientDefault()
 	url := fmt.Sprintf("http://localhost:8080/update/counter/%s/%d", name, value)
-	resp, err := client.Post(url, "text/plain", nil)
+	resp, err := s.client.Post(url, "text/plain", nil)
 	if err != nil {
 		return fmt.Errorf("error while doing the request: %w", err)
 	}
