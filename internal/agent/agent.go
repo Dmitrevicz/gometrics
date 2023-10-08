@@ -18,12 +18,12 @@ type Agent struct {
 	sender *sender
 }
 
-func New(pollInterval, reportInterval int) *Agent {
+func New(pollInterval, reportInterval int, url string) *Agent {
 	log.Printf("intervals (in seconds) - poll: %d, report: %d\n", pollInterval, reportInterval)
 	poller := NewPoller(pollInterval)
 	return &Agent{
 		poller: poller,
-		sender: NewSender(reportInterval, poller),
+		sender: NewSender(reportInterval, url, poller),
 	}
 }
 
