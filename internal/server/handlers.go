@@ -2,6 +2,8 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"strconv"
@@ -9,6 +11,7 @@ import (
 
 	"github.com/Dmitrevicz/gometrics/internal/model"
 	"github.com/Dmitrevicz/gometrics/internal/storage"
+	"github.com/gin-gonic/gin"
 )
 
 type Handlers struct {
@@ -21,51 +24,61 @@ func NewHandlers(storage storage.Storage) *Handlers {
 	}
 }
 
-// Сервер должен принимать данные в формате:
+// Update
+//
+// > Сервер должен принимать данные в формате:
 // http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
-func (h *Handlers) Update(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, ErrMsgMethodOnlyPOST, http.StatusMethodNotAllowed)
+func (h *Handlers) Update(c *gin.Context) {
+	/* method check is handled by gin now
+	if c.Request.Method != http.MethodPost {
+		http.Error(c.Writer, ErrMsgMethodOnlyPOST, http.StatusMethodNotAllowed)
 		return
-	}
+	} */
 
-	r.URL.Path = strings.TrimPrefix(r.URL.Path, "/update")
+	// It just works but might refactor later.
+	// Handler can have much less code as we now use gin as router.
+	// TODO: refactor "/update" handler
+
+	fmt.Println("params:", c.Params)
+	fmt.Println("r.URL.Path:", c.Request.URL.Path)
+	c.Request.URL.Path = strings.TrimPrefix(c.Request.URL.Path, "/update")
 
 	// head stands for "metric type", tail - "metric name"
 	var head string
-	head, r.URL.Path = ShiftPath(r.URL.Path)
+	head, c.Request.URL.Path = ShiftPath(c.Request.URL.Path)
 
 	// check metric type
 	if head == "" {
-		http.Error(w, ErrMsgWrongMetricType, http.StatusBadRequest)
+		http.Error(c.Writer, ErrMsgWrongMetricType, http.StatusBadRequest)
 		return
 	}
 
-	metricName, metricValue := ShiftPath(r.URL.Path)
+	metricName, metricValue := ShiftPath(c.Request.URL.Path)
+	metricName = strings.TrimSpace(metricName)
 
 	// check metric name
-	if r.URL.Path == "/" || strings.TrimSpace(metricName) == "" {
-		http.Error(w, ErrMsgEmptyMetricName, http.StatusNotFound)
+	if c.Request.URL.Path == "/" || metricName == "" {
+		http.Error(c.Writer, ErrMsgEmptyMetricName, http.StatusNotFound)
 		return
 	}
 
 	// check metric value
 	metricValue = strings.TrimPrefix(metricValue, "/")
 	if metricValue == "" {
-		http.Error(w, ErrMsgWrongMetricValue, http.StatusBadRequest)
+		http.Error(c.Writer, ErrMsgWrongMetricValue, http.StatusBadRequest)
 		return
 	}
 
 	// split handlers for [/gauge, /counter] endpoints
 	switch head {
 	case "gauge":
-		h.updateGauge(w, r)
+		h.updateGauge(c.Writer, c.Request)
 		return
 	case "counter":
-		h.updateCounter(w, r)
+		h.updateCounter(c.Writer, c.Request)
 		return
 	default:
-		http.Error(w, ErrMsgWrongMetricType, http.StatusBadRequest)
+		http.Error(c.Writer, ErrMsgWrongMetricType, http.StatusBadRequest)
 		return
 	}
 }
@@ -108,20 +121,60 @@ func (h *Handlers) updateCounter(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// GetMetricByName returns metric value by its name
+//
+// > Доработайте сервер так, чтобы в ответ на запрос
+// GET http://<АДРЕС_СЕРВЕРА>/value/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>
+// он возвращал текущее значение метрики в текстовом виде со статусом http.StatusOK.
+// При попытке запроса неизвестной метрики сервер должен возвращать http.StatusNotFound.
+func (h *Handlers) GetMetricByName(c *gin.Context) {
+	mType, mName := c.Param("type"), c.Param("name")
+	mType = strings.TrimSpace(mType)
+	mName = strings.TrimSpace(mName)
+
+	if mName == "" {
+		http.Error(c.Writer, ErrMsgEmptyMetricName, http.StatusBadRequest)
+		return
+	}
+
+	var (
+		value interface{}
+		ok    bool
+	)
+
+	switch mType {
+	case "gauge":
+		value, ok = h.storage.Gauges().Get(mName)
+	case "counter":
+		value, ok = h.storage.Counters().Get(mName)
+	default:
+		http.Error(c.Writer, ErrMsgWrongMetricType, http.StatusBadRequest)
+		return
+	}
+
+	if !ok {
+		http.Error(c.Writer, ErrMsgNothingFound, http.StatusNotFound)
+		return
+	}
+
+	c.String(http.StatusOK, "%v", value)
+}
+
 type metricsResponse struct {
 	Gauges   map[string]model.Gauge   `json:"gauges"`
 	Counters map[string]model.Counter `json:"counters"`
 }
 
-func (h *Handlers) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
+func (h *Handlers) GetAllMetrics(c *gin.Context) {
+	/* deprecated as gin is used now
+	if c.Request.URL.Path != "/" {
 		// avoid cases when std mux drops in this handler when not needed
-		http.NotFound(w, r)
+		http.NotFound(c.Writer, c.Request)
 		return
-	}
+	} */
 
-	if r.Method != http.MethodGet {
-		http.Error(w, ErrMsgMethodOnlyGET, http.StatusMethodNotAllowed)
+	if c.Request.Method != http.MethodGet {
+		http.Error(c.Writer, ErrMsgMethodOnlyGET, http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -132,10 +185,54 @@ func (h *Handlers) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := json.Marshal(metrics)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	_, _ = io.WriteString(w, string(resp))
+	c.Writer.Header().Set("Content-Type", "application/json; charset=utf-8")
+	_, _ = io.WriteString(c.Writer, string(resp))
+}
+
+// TODO: might move to file
+var pageTmpl = template.Must(template.New("index").Parse(`<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>gometrics</title>
+</head>
+	<h1>gometrics</h1>
+	<hr>
+
+	<h2>Counters</h2>
+	<ul>
+	{{range $key, $value := .Counters}}
+		<li>{{$key}}: {{$value}}</li>
+	{{end}}
+	</ul>
+
+	<h2>Gauges</h2>
+	<ul>
+	{{range $key, $value := .Gauges}}
+		<li>{{$key}}: {{$value}}</li>
+	{{end}}
+	</ul>
+</body>
+</html>
+`))
+
+type indexPageData struct {
+	Gauges   map[string]model.Gauge
+	Counters map[string]model.Counter
+}
+
+func (h *Handlers) PageIndex(c *gin.Context) {
+	var pData indexPageData
+
+	pData.Gauges = h.storage.Gauges().GetAll()
+	pData.Counters = h.storage.Counters().GetAll()
+
+	if err := pageTmpl.Execute(c.Writer, pData); err != nil {
+		http.Error(c.Writer, ErrMsgTemplateExec+": "+err.Error(), http.StatusInternalServerError)
+	}
 }

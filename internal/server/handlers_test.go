@@ -93,7 +93,7 @@ func TestHandlers_UpdateGauge(t *testing.T) {
 		},
 		{
 			name:       "incorrect-method",
-			wantCode:   http.StatusMethodNotAllowed,
+			wantCode:   http.StatusNotFound,
 			method:     data.bad.method,
 			metricType: data.good.metricType,
 			metricName: data.good.metricName,
@@ -212,7 +212,7 @@ func TestHandlers_UpdateCounter(t *testing.T) {
 		},
 		{
 			name:       "incorrect-method",
-			wantCode:   http.StatusMethodNotAllowed,
+			wantCode:   http.StatusNotFound,
 			method:     data.bad.method,
 			metricType: data.good.metricType,
 			metricName: data.good.metricName,
