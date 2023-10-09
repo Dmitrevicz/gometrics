@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/Dmitrevicz/gometrics/internal/storage/memstorage"
@@ -11,7 +10,6 @@ import (
 type server struct {
 	router   http.Handler
 	handlers *Handlers
-	// storage  *Storage
 }
 
 func New() *server {
@@ -23,22 +21,19 @@ func New() *server {
 	}
 
 	// configure router
-	gin.SetMode(gin.ReleaseMode) // make it not spam logs on startup
-	r := gin.New()               // no middlewares
+	gin.SetMode(gin.ReleaseMode)    // make it not spam logs on startup
+	r := gin.New()                  // no middlewares
+	r.RedirectTrailingSlash = false // autotests fail without it
+	r.Use(gin.Recovery())           // only panic recover for now
 
-	// r.RedirectFixedPath
-	r.RedirectTrailingSlash = false
-	fmt.Println("r.RedirectFixedPath:", r.RedirectFixedPath)
-	fmt.Println("r.RedirectTrailingSlash:", r.RedirectTrailingSlash)
-
-	r.Use(gin.Recovery()) // only panic recover for now
-
-	// TODO: move to separate func
-	r.GET("/", s.handlers.PageIndex) // remake to become html page
+	// TODO: move routes configuration to separate func
+	r.GET("/", s.handlers.PageIndex)
 	r.GET("/all", s.handlers.GetAllMetrics)
 	r.GET("/value/:type/:name", s.handlers.GetMetricByName)
-	r.POST("/update/*smth", s.handlers.Update) // have to use "/*smth" wildcard to workaround proper path segments checks and responses
-	// r.POST("update/:type/:name/:value", s.handlers.Update) // FIXME: 307 redirects "/name/" --> "/name"
+	r.POST("/update/:type/:name/:value", s.handlers.Update)
+	// For endpoint "/update/:type/:name/:value" decided to use readable params
+	// definition. Because instead you have to use *wildcard like "update/:type/*params"
+	// or smth like this if needed to treat params errors more precisely
 
 	s.router = r
 

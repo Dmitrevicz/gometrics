@@ -2,11 +2,8 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"html/template"
-	"io"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/Dmitrevicz/gometrics/internal/model"
@@ -29,53 +26,33 @@ func NewHandlers(storage storage.Storage) *Handlers {
 // > Сервер должен принимать данные в формате:
 // http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
 func (h *Handlers) Update(c *gin.Context) {
-	/* method check is handled by gin now
-	if c.Request.Method != http.MethodPost {
-		http.Error(c.Writer, ErrMsgMethodOnlyPOST, http.StatusMethodNotAllowed)
-		return
-	} */
+	mType, mName, mValue := c.Param("type"), c.Param("name"), c.Param("value")
+	mType = strings.TrimSpace(mType)
+	mName = strings.TrimSpace(mName)
+	mValue = strings.TrimSpace(mValue)
 
-	// It just works but might refactor later.
-	// Handler can have much less code as we now use gin as router.
-	// TODO: refactor "/update" handler
-
-	fmt.Println("params:", c.Params)
-	fmt.Println("r.URL.Path:", c.Request.URL.Path)
-	c.Request.URL.Path = strings.TrimPrefix(c.Request.URL.Path, "/update")
-
-	// head stands for "metric type", tail - "metric name"
-	var head string
-	head, c.Request.URL.Path = ShiftPath(c.Request.URL.Path)
-
-	// check metric type
-	if head == "" {
+	if mType == "" {
 		http.Error(c.Writer, ErrMsgWrongMetricType, http.StatusBadRequest)
 		return
 	}
 
-	metricName, metricValue := ShiftPath(c.Request.URL.Path)
-	metricName = strings.TrimSpace(metricName)
-
-	// check metric name
-	if c.Request.URL.Path == "/" || metricName == "" {
+	if mName == "" {
 		http.Error(c.Writer, ErrMsgEmptyMetricName, http.StatusNotFound)
 		return
 	}
 
-	// check metric value
-	metricValue = strings.TrimPrefix(metricValue, "/")
-	if metricValue == "" {
+	if mValue == "" {
 		http.Error(c.Writer, ErrMsgWrongMetricValue, http.StatusBadRequest)
 		return
 	}
 
 	// split handlers for [/gauge, /counter] endpoints
-	switch head {
+	switch mType {
 	case "gauge":
-		h.updateGauge(c.Writer, c.Request)
+		h.updateGauge(c, mName, mValue)
 		return
 	case "counter":
-		h.updateCounter(c.Writer, c.Request)
+		h.updateCounter(c, mName, mValue)
 		return
 	default:
 		http.Error(c.Writer, ErrMsgWrongMetricType, http.StatusBadRequest)
@@ -83,42 +60,35 @@ func (h *Handlers) Update(c *gin.Context) {
 	}
 }
 
-func (h *Handlers) updateGauge(w http.ResponseWriter, r *http.Request) {
-	// At this point it is expected for the Path to be at least of 2 parts,
-	// e.g. /gauge-name/gauge-value.
-	//
-	// Split in 3 parts so this last 3rd item will contain all possible
-	// unnecessary trash and the 2nd will be nothing but the metric value
-	paths := strings.SplitN(r.URL.Path[1:], "/", 3)
-
-	val, err := strconv.ParseFloat(paths[1], 64)
+func (h *Handlers) updateGauge(c *gin.Context, name, value string) {
+	var gauge model.Gauge
+	gauge, err := gauge.FromString(value)
 	if err != nil {
-		http.Error(w, ErrMsgWrongMetricValue, http.StatusBadRequest)
+		http.Error(c.Writer, ErrMsgWrongMetricValue, http.StatusBadRequest)
 		return
 	}
 
-	h.storage.Gauges().Set(paths[0], model.Gauge(val))
+	h.storage.Gauges().Set(name, gauge)
 
-	w.WriteHeader(http.StatusOK)
+	c.Status(http.StatusOK)
 }
 
-func (h *Handlers) updateCounter(w http.ResponseWriter, r *http.Request) {
-	paths := strings.SplitN(r.URL.Path[1:], "/", 3)
-
-	val, err := strconv.ParseInt(paths[1], 10, 64)
+func (h *Handlers) updateCounter(c *gin.Context, name, value string) {
+	var counter model.Counter
+	counter, err := counter.FromString(value)
 	if err != nil {
-		http.Error(w, ErrMsgWrongMetricValue, http.StatusBadRequest)
+		http.Error(c.Writer, ErrMsgWrongMetricValue, http.StatusBadRequest)
 		return
 	}
 
-	if val < 0 {
-		http.Error(w, ErrMsgNegativeCounter, http.StatusBadRequest)
+	if counter < 0 {
+		http.Error(c.Writer, ErrMsgNegativeCounter, http.StatusBadRequest)
 		return
 	}
 
-	h.storage.Counters().Set(paths[0], model.Counter(val))
+	h.storage.Counters().Set(name, counter)
 
-	w.WriteHeader(http.StatusOK)
+	c.Status(http.StatusOK)
 }
 
 // GetMetricByName returns metric value by its name
@@ -166,18 +136,6 @@ type metricsResponse struct {
 }
 
 func (h *Handlers) GetAllMetrics(c *gin.Context) {
-	/* deprecated as gin is used now
-	if c.Request.URL.Path != "/" {
-		// avoid cases when std mux drops in this handler when not needed
-		http.NotFound(c.Writer, c.Request)
-		return
-	} */
-
-	if c.Request.Method != http.MethodGet {
-		http.Error(c.Writer, ErrMsgMethodOnlyGET, http.StatusMethodNotAllowed)
-		return
-	}
-
 	var metrics metricsResponse
 
 	metrics.Gauges = h.storage.Gauges().GetAll()
@@ -190,7 +148,7 @@ func (h *Handlers) GetAllMetrics(c *gin.Context) {
 	}
 
 	c.Writer.Header().Set("Content-Type", "application/json; charset=utf-8")
-	_, _ = io.WriteString(c.Writer, string(resp))
+	_, _ = c.Writer.Write(resp)
 }
 
 // TODO: might move to file
