@@ -20,6 +20,8 @@ type Agent struct {
 
 func New(pollInterval, reportInterval int, url string) *Agent {
 	log.Printf("intervals (in seconds) - poll: %d, report: %d\n", pollInterval, reportInterval)
+	log.Printf("url: \"%s\"\n", url)
+
 	poller := NewPoller(pollInterval)
 	return &Agent{
 		poller: poller,
