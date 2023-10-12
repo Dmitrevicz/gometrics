@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/Dmitrevicz/gometrics/internal/agent"
 )
@@ -28,8 +30,14 @@ func main() {
 	agent := agent.New(pollInterval, reportInterval, urlServer)
 	agent.Start()
 
-	c := make(chan struct{})
-	<-c
+	waitExit()
+}
+
+func waitExit() {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	s := <-quit
+	log.Printf("Agent was stopped with signal: %v\n", s)
 }
 
 func parseFlags() {

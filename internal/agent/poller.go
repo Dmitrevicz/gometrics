@@ -60,8 +60,9 @@ func (p *poller) Poll() {
 }
 
 // AcquireMetrics prepares struct of metrics data ready to be sent to server
-func (p poller) AcquireMetrics() (s *Metrics) {
-	// Func receiver by value is used so p.stat structure will be safely copied
+func (p *poller) AcquireMetrics() (s *Metrics) {
+	// (?)
+	// Func receiver by value was used so p.stat structure will be safely copied
 	// before usage. (Even though struct itself is pretty big, so might be worth
 	// considering pointers&locks usage instead)
 

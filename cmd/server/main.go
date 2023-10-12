@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/Dmitrevicz/gometrics/internal/server"
 )
@@ -15,12 +19,36 @@ var serverAddress string
 func main() {
 	parseFlags()
 
-	s := server.New()
-
-	log.Printf("Starting Server on %s", serverAddress)
-	if err := http.ListenAndServe(serverAddress, s); err != nil {
-		log.Fatalln(err)
+	s := &http.Server{
+		Addr:    serverAddress,
+		Handler: server.New(),
 	}
+
+	go func() {
+		log.Printf("Starting Server on %s", serverAddress)
+		if err := s.ListenAndServe(); err != nil {
+			log.Fatalln(err)
+		}
+	}()
+
+	waitShutdown(s)
+}
+
+func waitShutdown(s *http.Server) {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-quit
+
+	log.Printf("Server caught signal: %v. Starting shutdown...\n", sig)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := s.Shutdown(ctx); err != nil {
+		log.Fatalln("Shutdown got error:", err)
+	}
+
+	log.Println("Server was stopped")
 }
 
 func parseFlags() {
