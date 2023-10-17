@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>gometrics</title>
+</head>
+<body>
+    <h1>gometrics</h1>
+    <hr>
+
+    <h2>Counters</h2>
+    <ul>
+    {{range $key, $value := .Counters}}
+        <li>{{$key}}: {{$value}}</li>
+    {{end}}
+    </ul>
+
+    <h2>Gauges</h2>
+    <ul>
+    {{range $key, $value := .Gauges}}
+        <li>{{$key}}: {{$value}}</li>
+    {{end}}
+    </ul>
+</body>
+</html>
