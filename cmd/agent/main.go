@@ -5,7 +5,11 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/Dmitrevicz/gometrics/internal/agent"
 )
@@ -21,12 +25,19 @@ var (
 
 func main() {
 	parseFlags()
+	checkEnvs()
 
 	agent := agent.New(pollInterval, reportInterval, urlServer)
 	agent.Start()
 
-	c := make(chan struct{})
-	<-c
+	waitExit()
+}
+
+func waitExit() {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	s := <-quit
+	log.Printf("Agent was stopped with signal: %v\n", s)
 }
 
 func parseFlags() {
@@ -52,4 +63,35 @@ func parseFlags() {
 	})
 
 	flag.Parse()
+}
+
+func checkEnvs() {
+	var err error
+
+	if e, ok := os.LookupEnv("ADDRESS"); ok {
+		urlServer = e
+
+		// buggy auto-tests workaround (same as for flags)
+		e = strings.TrimSpace(e)
+		if !(strings.Contains(e, "http://") || strings.Contains(e, "https://")) {
+			log.Printf("Provided ENV ADDRESS=\"%s\" lacks protocol scheme, attempt to fix it will be made\n", e)
+			urlServer = "http://" + e
+		}
+	}
+
+	if e, ok := os.LookupEnv("REPORT_INTERVAL"); ok {
+		reportInterval, err = strconv.Atoi(e)
+		if err != nil {
+			log.Fatalln("Error parsing REPORT_INTERVAL from env: ", err)
+			return
+		}
+	}
+
+	if e, ok := os.LookupEnv("POLL_INTERVAL"); ok {
+		pollInterval, err = strconv.Atoi(e)
+		if err != nil {
+			log.Fatalln("Error parsing POLL_INTERVAL from env: ", err)
+			return
+		}
+	}
 }
