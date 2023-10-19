@@ -25,6 +25,7 @@ func New() *server {
 	r := gin.New()                  // no middlewares
 	r.RedirectTrailingSlash = false // autotests fail without it
 	r.Use(gin.Recovery())           // only panic recover for now
+	r.Use(RequestLogger())          // custom logger middleware from the lesson
 
 	// TODO: move routes configuration to separate func
 	r.GET("/", s.handlers.PageIndex)

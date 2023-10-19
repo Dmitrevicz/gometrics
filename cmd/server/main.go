@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Dmitrevicz/gometrics/internal/logger"
 	"github.com/Dmitrevicz/gometrics/internal/server"
 )
 
@@ -18,6 +19,15 @@ var serverAddress string
 
 func main() {
 	parseFlags()
+
+	// TODO: add flags parsing for logger level?
+
+	// TODO: remake all log calls to new logger (zap)
+
+	// TODO: might move somewhere else and make it not be global logger maybe...
+	if err := logger.Initialize("debug"); err != nil {
+		log.Fatalln(err)
+	}
 
 	s := &http.Server{
 		Addr:    serverAddress,
