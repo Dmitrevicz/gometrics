@@ -12,22 +12,24 @@ import (
 
 	"github.com/Dmitrevicz/gometrics/internal/logger"
 	"github.com/Dmitrevicz/gometrics/internal/server"
+	"go.uber.org/zap"
 )
 
-// address for the server to listen on
-var serverAddress string
+var (
+	// address for the server to listen on
+	serverAddress string
+
+	// logger level
+	logLevel string
+)
 
 func main() {
 	parseFlags()
 
-	// TODO: add flags parsing for logger level?
-
-	// TODO: remake all log calls to new logger (zap)
-
-	// TODO: might move somewhere else and make it not be global logger maybe...
-	if err := logger.Initialize("debug"); err != nil {
+	if err := logger.Initialize(logLevel); err != nil {
 		log.Fatalln(err)
 	}
+	defer logger.Sync()
 
 	s := &http.Server{
 		Addr:    serverAddress,
@@ -35,9 +37,13 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("Starting Server on %s", serverAddress)
-		if err := s.ListenAndServe(); err != nil {
-			log.Fatalln(err)
+		logger.Log.Info("Starting Server",
+			zap.String("addr", s.Addr),
+			zap.String("loglvl", logger.Log.Level().String()),
+		)
+
+		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Log.Fatal("", zap.Error(err))
 		}
 	}()
 
@@ -49,24 +55,33 @@ func waitShutdown(s *http.Server) {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-quit
 
-	log.Printf("Server caught signal: %v. Starting shutdown...\n", sig)
+	logger.Log.Info("Server caught os signal. Starting shutdown...\n",
+		zap.String("signal", sig.String()),
+	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := s.Shutdown(ctx); err != nil {
-		log.Fatalln("Shutdown got error:", err)
+		logger.Log.Fatal("Shutdown got error",
+			zap.Error(err),
+		)
 	}
 
-	log.Println("Server was stopped")
+	logger.Log.Info("Server was stopped")
 }
 
 func parseFlags() {
 	flag.StringVar(&serverAddress, "a", "localhost:8080", "TCP address for the server to listen on")
+	flag.StringVar(&logLevel, "loglvl", "info", "logger level")
 	flag.Parse()
 
 	// get from env if exist
 	if e, ok := os.LookupEnv("ADDRESS"); ok {
 		serverAddress = e
+	}
+
+	if e, ok := os.LookupEnv("LOG_LVL"); ok {
+		logLevel = e
 	}
 }

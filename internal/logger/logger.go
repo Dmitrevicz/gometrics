@@ -5,6 +5,7 @@ import (
 )
 
 // Log is a logger instance.
+// Log variable must only be changed by Initialize function.
 // No-op Logger is set by default, so must be Initialized.
 var Log *zap.Logger = zap.NewNop()
 
@@ -27,4 +28,10 @@ func Initialize(level string) error {
 	Log = zl
 
 	return nil
+}
+
+// Sync ignores err check (to avoid lint warning).
+// Otherwise use logger.Log.Sync()
+func Sync() {
+	_ = Log.Sync()
 }
