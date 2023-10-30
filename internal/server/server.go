@@ -32,6 +32,8 @@ func New() *server {
 	r.GET("/", s.handlers.PageIndex)
 	r.GET("/all", s.handlers.GetAllMetrics)
 	r.GET("/value/:type/:name", s.handlers.GetMetricByName)
+	r.POST("/value/", s.handlers.GetMetricByJSON)
+	r.POST("/update/", s.handlers.UpdateMetricByJSON)
 	r.POST("/update/:type/:name/:value", s.handlers.Update)
 	// For endpoint "/update/:type/:name/:value" decided to use readable params
 	// definition. Because instead you have to use *wildcard like "update/:type/*params"

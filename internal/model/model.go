@@ -2,6 +2,12 @@ package model
 
 import "strconv"
 
+// metric type name
+const (
+	MetricTypeGauge   = "gauge"
+	MetricTypeCounter = "counter"
+)
+
 // metric value
 type (
 	Gauge   float64
@@ -20,4 +26,12 @@ func (g Counter) FromString(s string) (Counter, error) {
 	v, err := strconv.ParseInt(s, 10, 64)
 
 	return Counter(v), err
+}
+
+// Metrics - struct from the lesson
+type Metrics struct {
+	ID    string   `json:"id"`              // имя метрики
+	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
+	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
+	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
