@@ -320,6 +320,7 @@ func (h *Handlers) PageIndex(c *gin.Context) {
 	pData.Gauges = h.storage.Gauges().GetAll()
 	pData.Counters = h.storage.Counters().GetAll()
 
+	c.Writer.Header().Set("Content-Type", "text/html")
 	if err := pageTmpl.Execute(c.Writer, pData); err != nil {
 		http.Error(c.Writer, ErrMsgTemplateExec+": "+err.Error(), http.StatusInternalServerError)
 	}
