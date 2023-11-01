@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -29,9 +30,15 @@ func main() {
 	}
 	defer logger.Sync()
 
+	srv := server.New()
 	s := &http.Server{
 		Addr:    cfg.ServerAddress,
-		Handler: server.New(),
+		Handler: srv,
+	}
+
+	dumper := server.NewDumper(srv.Storage, cfg)
+	if err := dumper.Start(); err != nil {
+		logger.Log.Fatal("dumper start failed", zap.Error(err))
 	}
 
 	go func() {
@@ -45,10 +52,10 @@ func main() {
 		}
 	}()
 
-	waitShutdown(s)
+	waitShutdown(s, dumper)
 }
 
-func waitShutdown(s *http.Server) {
+func waitShutdown(s *http.Server, dumper *server.Dumper) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-quit
@@ -56,6 +63,8 @@ func waitShutdown(s *http.Server) {
 	logger.Log.Info("Server caught os signal. Starting shutdown...\n",
 		zap.String("signal", sig.String()),
 	)
+
+	dumper.Quit()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -106,6 +115,8 @@ func parseFlags(cfg *config.Config) error {
 		}
 		cfg.Restore = v
 	}
+
+	cfg.FileStoragePath = strings.TrimSpace(cfg.FileStoragePath)
 
 	return nil
 }
