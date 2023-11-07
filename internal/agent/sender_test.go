@@ -6,11 +6,14 @@ import (
 
 	"github.com/Dmitrevicz/gometrics/internal/model"
 	"github.com/Dmitrevicz/gometrics/internal/server"
+	"github.com/Dmitrevicz/gometrics/internal/server/config"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSender(t *testing.T) {
-	ts := httptest.NewServer(server.New())
+	cfg := config.NewTesting()
+
+	ts := httptest.NewServer(server.New(cfg))
 	defer ts.Close()
 
 	poller := NewPoller(0)

@@ -34,6 +34,17 @@ func New() *Config {
 	}
 }
 
+// NewTesting returns config which is safe to use in tests
+func NewTesting() *Config {
+	cfg := New()
+
+	cfg.FileStoragePath = ""
+	cfg.StoreInterval = -1
+	cfg.Restore = false
+
+	return cfg
+}
+
 // Sanitize checks for some input constraints and corrects if possible
 // func (c *Config) Sanitize() (bool, error) {
 // 	if c.StoreInterval < 0 {

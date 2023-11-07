@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/Dmitrevicz/gometrics/internal/model"
+	"github.com/Dmitrevicz/gometrics/internal/server/config"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -103,7 +104,7 @@ func TestHandlers_UpdateGauge(t *testing.T) {
 		},
 	}
 
-	server := New()
+	server := New(config.NewTesting())
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -220,7 +221,7 @@ func TestHandlers_UpdateCounter(t *testing.T) {
 		},
 	}
 
-	server := New()
+	server := New(config.NewTesting())
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

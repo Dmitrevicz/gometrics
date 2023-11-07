@@ -30,14 +30,13 @@ func main() {
 	}
 	defer logger.Sync()
 
-	srv := server.New()
+	srv := server.New(cfg)
 	s := &http.Server{
 		Addr:    cfg.ServerAddress,
 		Handler: srv,
 	}
 
-	dumper := server.NewDumper(srv.Storage, cfg)
-	if err := dumper.Start(); err != nil {
+	if err := srv.Dumper.Start(); err != nil {
 		logger.Log.Fatal("dumper start failed", zap.Error(err))
 	}
 
@@ -52,7 +51,7 @@ func main() {
 		}
 	}()
 
-	waitShutdown(s, dumper)
+	waitShutdown(s, srv.Dumper)
 }
 
 func waitShutdown(s *http.Server, dumper *server.Dumper) {

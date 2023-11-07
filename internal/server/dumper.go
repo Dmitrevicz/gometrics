@@ -22,15 +22,28 @@ type Dumper struct {
 	cfg     *config.Config
 	mu      sync.Mutex
 
+	// XXX: не нравится реализация (вызывать в каждом хендлере), но пока так...
+	// Dump is a func that is expected to be called from handlers...
+	// Stores metrics data into file or does nothing on some
+	// conditions (when StoreInterval == 0) described in the lesson task.
+	Dump dumpFunc
+
 	// maybe add smth to be able to stop the ticker on Quit call
 }
 
 func NewDumper(storage storage.Storage, cfg *config.Config) *Dumper {
-	return &Dumper{
+	d := Dumper{
 		// quit:    make(chan struct{}),
 		storage: storage,
 		cfg:     cfg,
 	}
+
+	d.Dump = d.noOpDump
+	if cfg.StoreInterval == 0 && cfg.FileStoragePath != "" {
+		d.Dump = d.dump
+	}
+
+	return &d
 }
 
 // Start runs timer on specified interval.
@@ -75,10 +88,8 @@ func (d *Dumper) Quit() {
 func (d *Dumper) startTimer() {
 	sleepDuration := time.Second * time.Duration(d.cfg.StoreInterval)
 
-	// XXX: Не понял, что значит "значение 0 делает запись синхронной" в постановке задачи.
-	// Поэтому просто отключаю в этом случае.
 	if sleepDuration <= 0 {
-		logger.Log.Error("dump timer wasn't started - got negative interval: " + sleepDuration.String())
+		logger.Log.Error("dump timer wasn't started - got negative or 0 interval: " + sleepDuration.String())
 		return
 	}
 
@@ -104,6 +115,14 @@ type metricsDump struct {
 	Counters map[string]model.Counter `json:"counters"`
 }
 
+type dumpFunc func() error
+
+// noOpDump does nothing
+func (d *Dumper) noOpDump() error {
+	return nil
+}
+
+// dump saves current metrics data into file
 func (d *Dumper) dump() error {
 	ts := time.Now()
 	defer func() {
@@ -122,10 +141,12 @@ func (d *Dumper) dump() error {
 		return fmt.Errorf("failed json Marshal: %w", err)
 	}
 
+	// dump() may be called from different goroutines (from many http requests concurrently)
 	d.mu.Lock()
-	defer d.mu.Unlock()
+	err = os.WriteFile(d.cfg.FileStoragePath, data, 0666)
+	d.mu.Unlock()
 
-	return os.WriteFile(d.cfg.FileStoragePath, data, 0666)
+	return err
 }
 
 func (d *Dumper) restore() error {
@@ -147,9 +168,7 @@ func (d *Dumper) restore() error {
 	}
 
 	// read metrics from file
-	d.mu.Lock()
 	data, err := os.ReadFile(d.cfg.FileStoragePath)
-	d.mu.Unlock()
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			logger.Log.Warn("dumper didn't find a file to restore from (skipping restore)", zap.Error(err))
