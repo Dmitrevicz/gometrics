@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -150,11 +151,24 @@ func (s *sender) sendMetrics(name string, value any) error {
 		return fmt.Errorf("error while preparing body for request: %w", err)
 	}
 
-	buf := bytes.NewBuffer(b)
+	// gzip
+	buf, err := s.compress(b)
+	if err != nil {
+		return fmt.Errorf("data compression failed: %w", err)
+	}
+
+	// prepare request
+	url := s.url + "/update/"
+	req, err := http.NewRequest(http.MethodPost, url, buf)
+	if err != nil {
+		return fmt.Errorf("error preparing the request: %w", err)
+	}
+
+	req.Header.Set("Content-Encoding", "gzip")
+	req.Header.Set("Content-Type", "application/json")
 
 	// do request
-	url := s.url + "/update/"
-	resp, err := s.client.Post(url, "application/json", buf)
+	resp, err := s.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("error while doing the request: %w", err)
 	}
@@ -170,4 +184,21 @@ func (s *sender) sendMetrics(name string, value any) error {
 	}
 
 	return nil
+}
+
+func (s *sender) compress(b []byte) (*bytes.Buffer, error) {
+	buf := bytes.NewBuffer(nil)
+
+	zb := gzip.NewWriter(buf)
+	_, err := zb.Write(b)
+	if err != nil {
+		return buf, err
+	}
+
+	err = zb.Close()
+	if err != nil {
+		return buf, err
+	}
+
+	return buf, nil
 }

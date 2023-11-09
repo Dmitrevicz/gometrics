@@ -28,6 +28,8 @@ func New() *server {
 	r.Use(RequestLogger())          // custom logger middleware from the lesson
 	// r.Use(gin.Logger()) // gin.Logger can be used, but custom RequestLogger is preferred now in learning purposes
 
+	r.Use(Gzip())
+
 	// TODO: move routes configuration to separate func
 	r.GET("/", s.handlers.PageIndex)
 	r.GET("/all", s.handlers.GetAllMetrics)
