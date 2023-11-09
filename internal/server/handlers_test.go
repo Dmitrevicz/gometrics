@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Dmitrevicz/gometrics/internal/model"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +25,7 @@ func TestHandlers_UpdateGauge(t *testing.T) {
 	}{
 		good: RequestData{
 			method:     http.MethodPost,
-			metricType: "gauge",
+			metricType: model.MetricTypeGauge,
 			metricName: "Alloc",
 			value:      42.420,
 		},
@@ -133,7 +134,7 @@ func TestHandlers_UpdateCounter(t *testing.T) {
 	}{
 		good: RequestData{
 			method:     http.MethodPost,
-			metricType: "counter",
+			metricType: model.MetricTypeCounter,
 			metricName: "PollCount",
 			value:      42,
 		},

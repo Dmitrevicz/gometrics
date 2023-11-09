@@ -1,6 +1,9 @@
 package agent
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -54,7 +57,7 @@ func (s *sender) Send(metrics *Metrics) {
 
 	for name, gauge := range metrics.Gauges {
 		// TODO: make it async
-		err := s.sendGauge(name, gauge)
+		err := s.sendMetrics(name, gauge)
 		if err != nil {
 			log.Println("Got error while sending gauge update request: " + err.Error())
 		}
@@ -62,7 +65,7 @@ func (s *sender) Send(metrics *Metrics) {
 
 	for name, counter := range metrics.Counters {
 		// TODO: make it async
-		err := s.sendCounter(name, counter)
+		err := s.sendMetrics(name, counter)
 		if err != nil {
 			log.Println("Got error while sending counter update request: " + err.Error())
 		}
@@ -95,7 +98,7 @@ func (s *sender) sendGauge(name string, value model.Gauge) error {
 	}
 
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("unexpecteed response status code: %s, body: %s", resp.Status, string(body))
+		return fmt.Errorf("unexpected response status code: %s, body: %s", resp.Status, string(body))
 	}
 
 	return nil
@@ -115,7 +118,55 @@ func (s *sender) sendCounter(name string, value model.Counter) error {
 	}
 
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("unexpecteed response status code: %s, body: %s", resp.Status, string(body))
+		return fmt.Errorf("unexpected response status code: %s, body: %s", resp.Status, string(body))
+	}
+
+	return nil
+}
+
+// sendMetrics - value must be either of type model.Counter or model.Gauge,
+// otherwise error will be returned.
+func (s *sender) sendMetrics(name string, value any) error {
+	// configure struct to be sent in request body
+	metrics := model.Metrics{
+		ID: name,
+	}
+
+	switch v := value.(type) {
+	case model.Gauge:
+		f := float64(v)
+		metrics.Value = &f
+		metrics.MType = model.MetricTypeGauge
+	case model.Counter:
+		d := int64(v)
+		metrics.Delta = &d
+		metrics.MType = model.MetricTypeCounter
+	default:
+		return errors.New("unexpected metric value type")
+	}
+
+	b, err := json.Marshal(metrics)
+	if err != nil {
+		return fmt.Errorf("error while preparing body for request: %w", err)
+	}
+
+	buf := bytes.NewBuffer(b)
+
+	// do request
+	url := s.url + "/update/"
+	resp, err := s.client.Post(url, "application/json", buf)
+	if err != nil {
+		return fmt.Errorf("error while doing the request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("error while reading the response bytes: %w", err)
+	}
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("unexpected response status code: %s, body: %s", resp.Status, string(body))
 	}
 
 	return nil
