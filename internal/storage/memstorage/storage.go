@@ -1,3 +1,4 @@
+// Package memstorage implements storage repository using map as data storage.
 package memstorage
 
 import "github.com/Dmitrevicz/gometrics/internal/storage"

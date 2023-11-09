@@ -2,38 +2,42 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/Dmitrevicz/gometrics/internal/logger"
 	"github.com/Dmitrevicz/gometrics/internal/server"
+	"github.com/Dmitrevicz/gometrics/internal/server/config"
 	"go.uber.org/zap"
 )
 
-var (
-	// address for the server to listen on
-	serverAddress string
-
-	// logger level
-	logLevel string
-)
-
 func main() {
-	parseFlags()
+	cfg := config.New()
+	if err := parseFlags(cfg); err != nil {
+		log.Fatalln("failed parsing flags:", err)
+	}
 
-	if err := logger.Initialize(logLevel); err != nil {
-		log.Fatalln(err)
+	if err := logger.Initialize(cfg.LogLevel); err != nil {
+		log.Fatalln("failed initializing logger:", err)
 	}
 	defer logger.Sync()
 
+	srv := server.New(cfg)
 	s := &http.Server{
-		Addr:    serverAddress,
-		Handler: server.New(),
+		Addr:    cfg.ServerAddress,
+		Handler: srv,
+	}
+
+	if err := srv.Dumper.Start(); err != nil {
+		logger.Log.Fatal("dumper start failed", zap.Error(err))
 	}
 
 	go func() {
@@ -47,10 +51,10 @@ func main() {
 		}
 	}()
 
-	waitShutdown(s)
+	waitShutdown(s, srv.Dumper)
 }
 
-func waitShutdown(s *http.Server) {
+func waitShutdown(s *http.Server, dumper *server.Dumper) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-quit
@@ -58,6 +62,8 @@ func waitShutdown(s *http.Server) {
 	logger.Log.Info("Server caught os signal. Starting shutdown...\n",
 		zap.String("signal", sig.String()),
 	)
+
+	dumper.Quit()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -71,17 +77,45 @@ func waitShutdown(s *http.Server) {
 	logger.Log.Info("Server was stopped")
 }
 
-func parseFlags() {
-	flag.StringVar(&serverAddress, "a", "localhost:8080", "TCP address for the server to listen on")
-	flag.StringVar(&logLevel, "loglvl", "info", "logger level")
+func parseFlags(cfg *config.Config) error {
+	flag.StringVar(&cfg.ServerAddress, "a", cfg.ServerAddress, "TCP address for the server to listen on")
+	flag.StringVar(&cfg.LogLevel, "loglvl", cfg.LogLevel, "logger level")
+	flag.StringVar(&cfg.FileStoragePath, "f", cfg.FileStoragePath, "file path for metrics data to be dumped in")
+	flag.IntVar(&cfg.StoreInterval, "i", cfg.StoreInterval, "interval in seconds for current metrics data to be dumped into file")
+	flag.BoolVar(&cfg.Restore, "r", cfg.Restore, "shows if data restore from file should be made")
+
 	flag.Parse()
 
 	// get from env if exist
 	if e, ok := os.LookupEnv("ADDRESS"); ok {
-		serverAddress = e
+		cfg.ServerAddress = e
 	}
 
 	if e, ok := os.LookupEnv("LOG_LVL"); ok {
-		logLevel = e
+		cfg.LogLevel = e
 	}
+
+	if e, ok := os.LookupEnv("FILE_STORAGE_PATH"); ok {
+		cfg.FileStoragePath = e
+	}
+
+	if e, ok := os.LookupEnv("STORE_INTERVAL"); ok {
+		v, err := strconv.Atoi(e)
+		if err != nil {
+			return errors.New("bad env \"STORE_INTERVAL\": " + err.Error())
+		}
+		cfg.StoreInterval = v
+	}
+
+	if e, ok := os.LookupEnv("RESTORE"); ok {
+		v, err := strconv.ParseBool(e)
+		if err != nil {
+			return errors.New("bad env \"RESTORE\": " + err.Error())
+		}
+		cfg.Restore = v
+	}
+
+	cfg.FileStoragePath = strings.TrimSpace(cfg.FileStoragePath)
+
+	return nil
 }

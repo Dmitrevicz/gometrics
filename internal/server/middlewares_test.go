@@ -8,11 +8,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Dmitrevicz/gometrics/internal/server/config"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGzipCompression(t *testing.T) {
-	server := New()
+	server := New(config.NewTesting())
 
 	requestBody := `{
 		"id": "testGauge",

@@ -3,6 +3,8 @@ package server
 import (
 	"net/http"
 
+	"github.com/Dmitrevicz/gometrics/internal/server/config"
+	"github.com/Dmitrevicz/gometrics/internal/storage"
 	"github.com/Dmitrevicz/gometrics/internal/storage/memstorage"
 	"github.com/gin-gonic/gin"
 )
@@ -10,14 +12,20 @@ import (
 type server struct {
 	router   http.Handler
 	handlers *Handlers
+
+	Storage storage.Storage
+	Dumper  *Dumper
 }
 
-func New() *server {
+func New(cfg *config.Config) *server {
 	storage := memstorage.New()
+
+	dumper := NewDumper(storage, cfg)
+
 	s := server{
-		// router:   http.NewServeMux(),
-		handlers: NewHandlers(storage),
-		// storage:  storage,
+		handlers: NewHandlers(storage, dumper),
+		Storage:  storage,
+		Dumper:   dumper,
 	}
 
 	// configure router

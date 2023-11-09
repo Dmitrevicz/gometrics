@@ -1,3 +1,4 @@
+// Package storage contains storage and repository interfaces definition.
 package storage
 
 import "github.com/Dmitrevicz/gometrics/internal/model"

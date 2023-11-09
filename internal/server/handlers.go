@@ -6,18 +6,22 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Dmitrevicz/gometrics/internal/logger"
 	"github.com/Dmitrevicz/gometrics/internal/model"
 	"github.com/Dmitrevicz/gometrics/internal/storage"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 type Handlers struct {
 	storage storage.Storage
+	dumper  *Dumper
 }
 
-func NewHandlers(storage storage.Storage) *Handlers {
+func NewHandlers(storage storage.Storage, dumper *Dumper) *Handlers {
 	return &Handlers{
 		storage: storage,
+		dumper:  dumper,
 	}
 }
 
@@ -70,6 +74,12 @@ func (h *Handlers) updateGauge(c *gin.Context, name, value string) {
 
 	h.storage.Gauges().Set(name, gauge)
 
+	if err = h.dumper.Dump(); err != nil {
+		logger.Log.Error("dumper failed", zap.Error(err))
+		http.Error(c.Writer, "dumper failed", http.StatusInternalServerError)
+		return
+	}
+
 	c.Status(http.StatusOK)
 }
 
@@ -87,6 +97,12 @@ func (h *Handlers) updateCounter(c *gin.Context, name, value string) {
 	}
 
 	h.storage.Counters().Set(name, counter)
+
+	if err = h.dumper.Dump(); err != nil {
+		logger.Log.Error("dumper failed", zap.Error(err))
+		http.Error(c.Writer, "dumper failed", http.StatusInternalServerError)
+		return
+	}
 
 	c.Status(http.StatusOK)
 }
@@ -140,6 +156,12 @@ func (h *Handlers) updateGaugeFromMetrics(c *gin.Context, m model.Metrics) {
 	h.storage.Gauges().Set(m.ID, model.Gauge(*m.Value))
 	m.Delta = nil
 
+	if err := h.dumper.Dump(); err != nil {
+		logger.Log.Error("dumper failed", zap.Error(err))
+		http.Error(c.Writer, "dumper failed", http.StatusInternalServerError)
+		return
+	}
+
 	c.JSON(http.StatusOK, m)
 }
 
@@ -155,6 +177,12 @@ func (h *Handlers) updateCounterFromMetrics(c *gin.Context, m model.Metrics) {
 	}
 
 	h.storage.Counters().Set(m.ID, model.Counter(*m.Delta))
+
+	if err := h.dumper.Dump(); err != nil {
+		logger.Log.Error("dumper failed", zap.Error(err))
+		http.Error(c.Writer, "dumper failed", http.StatusInternalServerError)
+		return
+	}
 
 	counter, ok := h.storage.Counters().Get(m.ID)
 	if !ok {
