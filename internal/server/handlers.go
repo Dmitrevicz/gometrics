@@ -25,6 +25,16 @@ func NewHandlers(storage storage.Storage, dumper *Dumper) *Handlers {
 	}
 }
 
+func (h *Handlers) PingStorage(c *gin.Context) {
+	if err := h.storage.Ping(c.Request.Context()); err != nil {
+		logger.Log.Error("database ping failed", zap.Error(err))
+		http.Error(c.Writer, "", http.StatusInternalServerError)
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
 // Update
 //
 // > Сервер должен принимать данные в формате:

@@ -1,12 +1,18 @@
 package server
 
 import (
+	"database/sql"
 	"net/http"
 
+	"github.com/Dmitrevicz/gometrics/internal/logger"
 	"github.com/Dmitrevicz/gometrics/internal/server/config"
 	"github.com/Dmitrevicz/gometrics/internal/storage"
 	"github.com/Dmitrevicz/gometrics/internal/storage/memstorage"
+	"github.com/Dmitrevicz/gometrics/internal/storage/postgres"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 type server struct {
@@ -18,15 +24,12 @@ type server struct {
 }
 
 func New(cfg *config.Config) *server {
-	storage := memstorage.New()
+	var s server
 
-	dumper := NewDumper(storage, cfg)
+	s.configureStorage(cfg)
 
-	s := server{
-		handlers: NewHandlers(storage, dumper),
-		Storage:  storage,
-		Dumper:   dumper,
-	}
+	s.Dumper = NewDumper(s.Storage, cfg)
+	s.handlers = NewHandlers(s.Storage, s.Dumper)
 
 	// configure router
 	gin.SetMode(gin.ReleaseMode)    // make it not spam logs on startup
@@ -41,6 +44,7 @@ func New(cfg *config.Config) *server {
 	// TODO: move routes configuration to separate func
 	r.GET("/", s.handlers.PageIndex)
 	r.GET("/all", s.handlers.GetAllMetrics)
+	r.GET("/ping", s.handlers.PingStorage)
 	r.GET("/value/:type/:name", s.handlers.GetMetricByName)
 	r.POST("/value/", s.handlers.GetMetricByJSON)
 	r.POST("/update/", s.handlers.UpdateMetricByJSON)
@@ -61,4 +65,33 @@ func New(cfg *config.Config) *server {
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
+}
+
+func (s *server) configureStorage(cfg *config.Config) {
+	if cfg.DatabaseDSN != "" {
+		db, err := newDB(cfg.DatabaseDSN)
+		if err != nil {
+			// или лучше прокидывать error до самого main.go и уже там вызывать fatal?
+			logger.Log.Fatal("Can't configure storage", zap.Error(err))
+		}
+
+		s.Storage = postgres.New(db)
+		return
+	}
+
+	s.Storage = memstorage.New()
+}
+
+// XXX: куда можно положить эту функцию?
+func newDB(dsn string) (*sql.DB, error) {
+	db, err := sql.Open("pgx", dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }

@@ -1,12 +1,17 @@
 // Package storage contains storage and repository interfaces definition.
 package storage
 
-import "github.com/Dmitrevicz/gometrics/internal/model"
+import (
+	"context"
+
+	"github.com/Dmitrevicz/gometrics/internal/model"
+)
 
 // Storage - a set of repositories
 type Storage interface {
 	Gauges() GaugesRepository
 	Counters() CountersRepository
+	Ping(ctx context.Context) error
 }
 
 type GaugesRepository interface {

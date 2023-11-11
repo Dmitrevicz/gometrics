@@ -21,6 +21,10 @@ type Config struct {
 	// определяющее, загружать или нет ранее сохранённые значения из указанного
 	// файла при старте сервера (по умолчанию true).
 	Restore bool
+
+	// Строка с адресом подключения к БД должна получаться из переменной
+	// окружения DATABASE_DSN или флага командной строки -d
+	DatabaseDSN string
 }
 
 // New creates config with default values set
