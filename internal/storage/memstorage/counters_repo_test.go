@@ -20,15 +20,18 @@ func TestCountersRepo_Get(t *testing.T) {
 	}
 
 	t.Run("found", func(t *testing.T) {
-		s.Counters().Set(counter.name, counter.value)
+		err := s.Counters().Set(counter.name, counter.value)
+		require.NoError(t, err)
 
-		got, ok := s.Counters().Get(counter.name)
+		got, ok, err := s.Counters().Get(counter.name)
+		require.NoError(t, err)
 		require.True(t, ok, "expected ok=true, but nothing was found")
 		assert.Equal(t, counter.value, got)
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		got, ok := s.Counters().Get("unknown-test-counter")
+		got, ok, err := s.Counters().Get("unknown-test-counter")
+		require.NoError(t, err)
 		require.Falsef(t, ok, "expected ok=false, but counter was found - name: %s, counter: %d", counter.name, got)
 		assert.EqualValues(t, 0, got)
 	})
@@ -53,10 +56,12 @@ func TestCountersRepo_GetAll(t *testing.T) {
 		s := New()
 
 		for _, c := range counters {
-			s.Counters().Set(c.name, c.value)
+			err := s.Counters().Set(c.name, c.value)
+			require.NoError(t, err)
 		}
 
-		got := s.Counters().GetAll()
+		got, err := s.Counters().GetAll()
+		require.NoError(t, err)
 		require.NotEmpty(t, got)
 		assert.Len(t, got, len(counters))
 	})
@@ -65,10 +70,12 @@ func TestCountersRepo_GetAll(t *testing.T) {
 		s := New()
 
 		for _, c := range counters {
-			s.Counters().Delete(c.name)
+			err := s.Counters().Delete(c.name)
+			require.NoError(t, err)
 		}
 
-		got := s.Counters().GetAll()
+		got, err := s.Counters().GetAll()
+		require.NoError(t, err)
 		assert.Empty(t, got)
 		assert.Len(t, got, 0)
 	})
@@ -85,9 +92,11 @@ func TestCountersRepo_Set(t *testing.T) {
 		value: model.Counter(42),
 	}
 
-	s.Counters().Set(counter.name, counter.value)
+	err := s.Counters().Set(counter.name, counter.value)
+	require.NoError(t, err)
 
-	got, ok := s.Counters().Get(counter.name)
+	got, ok, err := s.Counters().Get(counter.name)
+	require.NoError(t, err)
 	require.True(t, ok, "expected ok=true, but nothing was found")
 	assert.Equal(t, counter.value, got)
 }
@@ -103,14 +112,18 @@ func TestCountersRepo_Delete(t *testing.T) {
 		value: model.Counter(42),
 	}
 
-	s.Counters().Set(counter.name, counter.value)
+	err := s.Counters().Set(counter.name, counter.value)
+	require.NoError(t, err)
 
-	got, ok := s.Counters().Get(counter.name)
+	got, ok, err := s.Counters().Get(counter.name)
+	require.NoError(t, err)
 	require.True(t, ok, "expected ok=true, but nothing was found")
 	assert.Equal(t, counter.value, got)
 
-	s.Counters().Delete(counter.name)
+	err = s.Counters().Delete(counter.name)
+	require.NoError(t, err)
 
-	got, ok = s.Counters().Get(counter.name)
+	got, ok, err = s.Counters().Get(counter.name)
+	require.NoError(t, err)
 	require.Falsef(t, ok, "expected ok=false, but counter was found - name: %s, counter: %d", counter.name, got)
 }

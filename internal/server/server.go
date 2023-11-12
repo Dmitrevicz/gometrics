@@ -71,7 +71,11 @@ func (s *server) configureStorage(cfg *config.Config) {
 	if cfg.DatabaseDSN != "" {
 		db, err := newDB(cfg.DatabaseDSN)
 		if err != nil {
-			// или лучше прокидывать error до самого main.go и уже там вызывать fatal?
+			// или лучше прокидывать error вверх до самого main.go и уже там вызывать fatal?
+			logger.Log.Fatal("Can't configure storage", zap.Error(err))
+		}
+
+		if err = createTables(db); err != nil {
 			logger.Log.Fatal("Can't configure storage", zap.Error(err))
 		}
 
@@ -94,4 +98,24 @@ func newDB(dsn string) (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+func createTables(db *sql.DB) (err error) {
+	if _, err = db.Exec(`CREATE TABLE IF NOT EXISTS counters (
+		name varchar(500) NOT NULL PRIMARY KEY,
+		value bigint NOT NULL DEFAULT 0,
+		updated timestamptz NOT NULL DEFAULT now()
+	)`); err != nil {
+		return err
+	}
+
+	if _, err = db.Exec(`CREATE TABLE IF NOT EXISTS gauges (
+		name varchar(500) NOT NULL PRIMARY KEY,
+		value double precision NOT NULL DEFAULT 0,
+		updated timestamptz NOT NULL DEFAULT now()
+	)`); err != nil {
+		return err
+	}
+
+	return nil
 }

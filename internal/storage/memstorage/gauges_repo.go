@@ -17,15 +17,15 @@ func NewGaugesRepo() *GaugesRepo {
 	}
 }
 
-func (s *GaugesRepo) Get(name string) (model.Gauge, bool) {
+func (s *GaugesRepo) Get(name string) (model.Gauge, bool, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	v, ok := s.gauges[name]
-	return v, ok
+	return v, ok, nil
 }
 
-func (s *GaugesRepo) GetAll() map[string]model.Gauge {
+func (s *GaugesRepo) GetAll() (map[string]model.Gauge, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -35,19 +35,21 @@ func (s *GaugesRepo) GetAll() map[string]model.Gauge {
 		res[k] = v
 	}
 
-	return res
+	return res, nil
 }
 
-func (s *GaugesRepo) Set(name string, value model.Gauge) {
+func (s *GaugesRepo) Set(name string, value model.Gauge) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	s.gauges[name] = value
+	return nil
 }
 
-func (s *GaugesRepo) Delete(name string) {
+func (s *GaugesRepo) Delete(name string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	delete(s.gauges, name)
+	return nil
 }

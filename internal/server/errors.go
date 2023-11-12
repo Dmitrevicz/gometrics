@@ -10,4 +10,5 @@ const (
 	ErrMsgWrongMetricValue = "Wrong metric value"
 	ErrMsgNegativeCounter  = "Counter value must not be negative"
 	ErrMsgTemplateExec     = "Error executing template"
+	ErrMsgStorageFail      = "Storage error"
 )

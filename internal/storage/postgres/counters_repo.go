@@ -1,6 +1,8 @@
 package postgres
 
 import (
+	"database/sql"
+
 	"github.com/Dmitrevicz/gometrics/internal/model"
 )
 
@@ -14,22 +16,87 @@ func NewCountersRepo(storage *Storage) *CountersRepo {
 	}
 }
 
-func (s *CountersRepo) Get(name string) (model.Counter, bool) {
-	// panic("not implemented")
-	return 0, false // make autotests pass...
+var queryGetCounter = `SELECT value FROM counters WHERE name=$1;`
+
+// Get - bool result param shows if metric was found or not.
+func (r *CountersRepo) Get(name string) (model.Counter, bool, error) {
+	stmt, err := r.s.db.Prepare(queryGetCounter)
+	if err != nil {
+		return 0, false, err
+	}
+	defer stmt.Close()
+
+	var counter model.Counter
+	err = stmt.QueryRow(name).Scan(&counter)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = nil
+		}
+		return 0, false, err
+	}
+
+	return counter, true, nil
 }
 
-func (s *CountersRepo) GetAll() map[string]model.Counter {
-	// panic("not implemented")
-	return nil // make autotests pass...
+var queryGetCountersAll = `SELECT name, value FROM counters;`
+
+func (r *CountersRepo) GetAll() (map[string]model.Counter, error) {
+	stmt, err := r.s.db.Prepare(queryGetCountersAll)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	counters := make(map[string]model.Counter)
+
+	rows, err := stmt.Query()
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var (
+			value model.Counter
+			name  string
+		)
+		err = rows.Scan(&name, &value)
+		if err != nil {
+			return nil, err
+		}
+		counters[name] = value
+	}
+
+	return counters, rows.Err()
 }
 
-func (s *CountersRepo) Set(name string, value model.Counter) {
-	// panic("not implemented")
-	// make autotests pass...
+var querySetCounter = `
+	INSERT INTO counters (name, value) VALUES ($1, $2)
+	ON CONFLICT(name) 
+	DO UPDATE SET value=$2;
+`
+
+func (r *CountersRepo) Set(name string, value model.Counter) error {
+	stmt, err := r.s.db.Prepare(querySetCounter)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(name, value)
+
+	return err
 }
 
-func (s *CountersRepo) Delete(name string) {
-	// panic("not implemented")
-	// make autotests pass...
+var queryDeleteCounter = `DELETE FROM counters WHERE name=$1;`
+
+func (r *CountersRepo) Delete(name string) error {
+	stmt, err := r.s.db.Prepare(queryDeleteCounter)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(name)
+
+	return err
 }

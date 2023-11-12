@@ -17,15 +17,15 @@ func NewCountersRepo() *CountersRepo {
 	}
 }
 
-func (s *CountersRepo) Get(name string) (model.Counter, bool) {
+func (s *CountersRepo) Get(name string) (model.Counter, bool, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	v, ok := s.counters[name]
-	return v, ok
+	return v, ok, nil
 }
 
-func (s *CountersRepo) GetAll() map[string]model.Counter {
+func (s *CountersRepo) GetAll() (map[string]model.Counter, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -35,19 +35,21 @@ func (s *CountersRepo) GetAll() map[string]model.Counter {
 		res[k] = v
 	}
 
-	return res
+	return res, nil
 }
 
-func (s *CountersRepo) Set(name string, value model.Counter) {
+func (s *CountersRepo) Set(name string, value model.Counter) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	s.counters[name] += value
+	return nil
 }
 
-func (s *CountersRepo) Delete(name string) {
+func (s *CountersRepo) Delete(name string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	delete(s.counters, name)
+	return nil
 }
