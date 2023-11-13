@@ -17,14 +17,16 @@ import (
 type sender struct {
 	reportInterval int
 	url            string
+	batch          bool
 	poller         *poller
 	client         *http.Client
 }
 
-func NewSender(reportInterval int, url string, poller *poller) *sender {
+func NewSender(reportInterval int, url string, batch bool, poller *poller) *sender {
 	return &sender{
 		reportInterval: reportInterval,
 		url:            url,
+		batch:          batch,
 		poller:         poller,
 		client:         NewClientDefault(),
 	}
@@ -41,7 +43,15 @@ func (s *sender) Start() {
 		time.Sleep(sleepDuration)
 
 		ts = time.Now()
-		s.Send(s.poller.AcquireMetrics())
+
+		// iteration-12:
+		// > Научите агент работать с использованием нового API (отправлять метрики батчами).
+		if s.batch {
+			s.SendBatched(s.poller.AcquireMetrics())
+		} else {
+			s.Send(s.poller.AcquireMetrics())
+		}
+
 		fmt.Println("send fired:", time.Since(ts))
 	}
 }
@@ -70,6 +80,53 @@ func (s *sender) Send(metrics *Metrics) {
 		if err != nil {
 			log.Println("Got error while sending counter update request: " + err.Error())
 		}
+	}
+
+	log.Printf("Metrics have been sent (%d in %v)\n", len(metrics.Counters)+len(metrics.Gauges), time.Since(ts))
+}
+
+func (s *sender) prepareMetricsBatch(metrics *Metrics) (batch []model.Metrics) {
+	batch = make([]model.Metrics, 0, len(metrics.Gauges)+len(metrics.Counters))
+
+	for name, val := range metrics.Gauges {
+		gauge := model.Metrics{
+			MType: model.MetricTypeGauge,
+			ID:    name,
+			Value: (*float64)(&val),
+		}
+		batch = append(batch, gauge)
+	}
+
+	for name, val := range metrics.Counters {
+		counter := model.Metrics{
+			MType: model.MetricTypeCounter,
+			ID:    name,
+			Delta: (*int64)(&val),
+		}
+		batch = append(batch, counter)
+	}
+
+	return batch
+}
+
+// SendBatched
+//
+// > Научите агент работать с использованием нового API (отправлять метрики батчами).
+func (s *sender) SendBatched(metrics *Metrics) {
+	log.Println("Metrics report started (batched)")
+
+	if metrics == nil {
+		log.Println("Error sending metrics: got nil as *Metrics, skip")
+		return
+	}
+
+	ts := time.Now()
+
+	batch := s.prepareMetricsBatch(metrics)
+
+	err := s.sendBatched(batch)
+	if err != nil {
+		log.Println("Got error while sending batched update request: " + err.Error())
 	}
 
 	log.Printf("Metrics have been sent (%d in %v)\n", len(metrics.Counters)+len(metrics.Gauges), time.Since(ts))
@@ -201,4 +258,46 @@ func (s *sender) compress(b []byte) (*bytes.Buffer, error) {
 	}
 
 	return buf, nil
+}
+
+// > Научите агент работать с использованием нового API (отправлять метрики батчами).
+func (s *sender) sendBatched(batch []model.Metrics) error {
+	b, err := json.Marshal(batch)
+	if err != nil {
+		return fmt.Errorf("error while preparing body for request: %w", err)
+	}
+
+	// gzip
+	buf, err := s.compress(b)
+	if err != nil {
+		return fmt.Errorf("data compression failed: %w", err)
+	}
+
+	// prepare request
+	url := s.url + "/updates/"
+	req, err := http.NewRequest(http.MethodPost, url, buf)
+	if err != nil {
+		return fmt.Errorf("error preparing the request: %w", err)
+	}
+
+	req.Header.Set("Content-Encoding", "gzip")
+	req.Header.Set("Content-Type", "application/json")
+
+	// do request
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("error while doing the request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("error while reading the response bytes: %w", err)
+	}
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("unexpected response status code: %s, body: %s", resp.Status, string(body))
+	}
+
+	return nil
 }

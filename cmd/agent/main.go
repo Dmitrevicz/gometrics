@@ -23,11 +23,15 @@ var (
 	reportInterval int
 )
 
+// Shows if metrics update request should be sent in single batch.
+// Default is true
+var batch = true
+
 func main() {
 	parseFlags()
 	checkEnvs()
 
-	agent := agent.New(pollInterval, reportInterval, urlServer)
+	agent := agent.New(pollInterval, reportInterval, urlServer, batch)
 	agent.Start()
 
 	waitExit()
@@ -44,6 +48,7 @@ func parseFlags() {
 	// flag.StringVar(&urlServer, "a", "http://localhost:8080", "api endpoint address")
 	flag.IntVar(&pollInterval, "p", 2, "poll interval in seconds")
 	flag.IntVar(&reportInterval, "r", 10, "report interval in seconds")
+	flag.BoolVar(&batch, "batch", batch, "send metrics update request in single batch")
 
 	// have to implement a workaround to trick buggy autotests
 	flag.Func("a", fmt.Sprintf("api endpoint address (default %s)", urlServer), func(s string) error {
@@ -93,5 +98,14 @@ func checkEnvs() {
 			log.Fatalln("Error parsing POLL_INTERVAL from env: ", err)
 			return
 		}
+	}
+
+	if e, ok := os.LookupEnv("BATCH"); ok {
+		v, err := strconv.ParseBool(e)
+		if err != nil {
+			log.Fatalln("Error parsing BATCH from env: ", err)
+			return
+		}
+		batch = v
 	}
 }

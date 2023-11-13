@@ -292,12 +292,11 @@ func (h *Handlers) UpdateBatch(c *gin.Context) {
 	}
 
 	gauges, counters, err := prepareBatchedMetrics(req)
-	fmt.Println("err:", err)
-	fmt.Println(gauges, counters)
 	if err != nil {
 		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
 		return
 	}
+	logger.Log.Info("batch parsed", zap.Any("gauges", gauges), zap.Any("counters", counters))
 
 	if err = h.storage.Gauges().BatchUpdate(gauges); err != nil {
 		logger.Log.Error(ErrMsgStorageFail, zap.Error(err))
