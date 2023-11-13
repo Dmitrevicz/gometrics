@@ -49,6 +49,7 @@ func New(cfg *config.Config) *server {
 	r.POST("/value/", s.handlers.GetMetricByJSON)
 	r.POST("/update/", s.handlers.UpdateMetricByJSON)
 	r.POST("/update/:type/:name/:value", s.handlers.Update)
+	r.POST("/updates/", s.handlers.UpdateBatch)
 	// For endpoint "/update/:type/:name/:value" decided to use readable params
 	// definition. Because instead you have to use *wildcard like "update/:type/*params"
 	// or smth like this if needed to treat params errors more precisely
@@ -101,7 +102,15 @@ func newDB(dsn string) (*sql.DB, error) {
 }
 
 func createTables(db *sql.DB) (err error) {
-	if _, err = db.Exec(`CREATE TABLE IF NOT EXISTS counters (
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	if _, err = tx.Exec(`CREATE TABLE IF NOT EXISTS counters (
 		name varchar(500) NOT NULL PRIMARY KEY,
 		value bigint NOT NULL DEFAULT 0,
 		updated timestamptz NOT NULL DEFAULT now()
@@ -109,7 +118,7 @@ func createTables(db *sql.DB) (err error) {
 		return err
 	}
 
-	if _, err = db.Exec(`CREATE TABLE IF NOT EXISTS gauges (
+	if _, err = tx.Exec(`CREATE TABLE IF NOT EXISTS gauges (
 		name varchar(500) NOT NULL PRIMARY KEY,
 		value double precision NOT NULL DEFAULT 0,
 		updated timestamptz NOT NULL DEFAULT now()
@@ -117,5 +126,5 @@ func createTables(db *sql.DB) (err error) {
 		return err
 	}
 
-	return nil
+	return tx.Commit()
 }

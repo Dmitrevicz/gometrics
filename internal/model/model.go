@@ -35,3 +35,13 @@ type Metrics struct {
 	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
 	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
+
+type MetricGauge struct {
+	Name  string
+	Value Gauge
+}
+
+type MetricCounter struct {
+	Name  string
+	Value Counter
+}

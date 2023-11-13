@@ -16,7 +16,7 @@ func NewCountersRepo(storage *Storage) *CountersRepo {
 	}
 }
 
-var queryGetCounter = `SELECT value FROM counters WHERE name=$1;`
+const queryGetCounter = `SELECT value FROM counters WHERE name=$1;`
 
 // Get - bool result param shows if metric was found or not.
 func (r *CountersRepo) Get(name string) (model.Counter, bool, error) {
@@ -38,7 +38,7 @@ func (r *CountersRepo) Get(name string) (model.Counter, bool, error) {
 	return counter, true, nil
 }
 
-var queryGetCountersAll = `SELECT name, value FROM counters;`
+const queryGetCountersAll = `SELECT name, value FROM counters;`
 
 func (r *CountersRepo) GetAll() (map[string]model.Counter, error) {
 	stmt, err := r.s.db.Prepare(queryGetCountersAll)
@@ -69,10 +69,10 @@ func (r *CountersRepo) GetAll() (map[string]model.Counter, error) {
 	return counters, rows.Err()
 }
 
-var querySetCounter = `
+const querySetCounter = `
 	INSERT INTO counters (name, value) VALUES ($1, $2)
 	ON CONFLICT(name) 
-	DO UPDATE SET value=$2;
+	DO UPDATE SET value = counters.value + $2;
 `
 
 func (r *CountersRepo) Set(name string, value model.Counter) error {
@@ -87,7 +87,37 @@ func (r *CountersRepo) Set(name string, value model.Counter) error {
 	return err
 }
 
-var queryDeleteCounter = `DELETE FROM counters WHERE name=$1;`
+func (r *CountersRepo) BatchUpdate(counters []model.MetricCounter) (err error) {
+	tx, err := r.s.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	stmt, err := tx.Prepare(querySetCounter)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, counter := range counters {
+		_, err = stmt.Exec(counter.Name, counter.Value)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+const queryDeleteCounter = `DELETE FROM counters WHERE name=$1;`
 
 func (r *CountersRepo) Delete(name string) error {
 	stmt, err := r.s.db.Prepare(queryDeleteCounter)

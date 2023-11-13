@@ -16,7 +16,7 @@ func NewGaugesRepo(storage *Storage) *GaugesRepo {
 	}
 }
 
-var queryGetGauge = `SELECT value FROM gauges WHERE name=$1;`
+const queryGetGauge = `SELECT value FROM gauges WHERE name=$1;`
 
 // Get - bool result param shows if metric was found or not.
 func (r *GaugesRepo) Get(name string) (model.Gauge, bool, error) {
@@ -38,7 +38,7 @@ func (r *GaugesRepo) Get(name string) (model.Gauge, bool, error) {
 	return gauge, true, nil
 }
 
-var queryGetGaugesAll = `SELECT name, value FROM gauges;`
+const queryGetGaugesAll = `SELECT name, value FROM gauges;`
 
 func (r *GaugesRepo) GetAll() (map[string]model.Gauge, error) {
 	stmt, err := r.s.db.Prepare(queryGetGaugesAll)
@@ -69,7 +69,7 @@ func (r *GaugesRepo) GetAll() (map[string]model.Gauge, error) {
 	return gauges, rows.Err()
 }
 
-var querySetGauge = `
+const querySetGauge = `
 	INSERT INTO gauges (name, value) VALUES ($1, $2)
 	ON CONFLICT(name) 
 	DO UPDATE SET value=$2;
@@ -87,7 +87,37 @@ func (r *GaugesRepo) Set(name string, value model.Gauge) error {
 	return err
 }
 
-var queryDeleteGauge = `DELETE FROM gauges WHERE name=$1;`
+func (r *GaugesRepo) BatchUpdate(gauges []model.MetricGauge) (err error) {
+	tx, err := r.s.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	stmt, err := tx.Prepare(querySetGauge)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, gauge := range gauges {
+		_, err = stmt.Exec(gauge.Name, gauge.Value)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+const queryDeleteGauge = `DELETE FROM gauges WHERE name=$1;`
 
 func (r *GaugesRepo) Delete(name string) error {
 	stmt, err := r.s.db.Prepare(queryDeleteGauge)

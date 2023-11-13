@@ -53,3 +53,14 @@ func (s *CountersRepo) Delete(name string) error {
 	delete(s.counters, name)
 	return nil
 }
+
+func (s *CountersRepo) BatchUpdate(counters []model.MetricCounter) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, c := range counters {
+		s.counters[c.Name] += c.Value
+	}
+
+	return nil
+}
