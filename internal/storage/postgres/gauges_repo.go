@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"database/sql"
+	"errors"
 
 	"github.com/Dmitrevicz/gometrics/internal/model"
 )
@@ -29,7 +30,7 @@ func (r *GaugesRepo) Get(name string) (model.Gauge, bool, error) {
 	var gauge model.Gauge
 	err = stmt.QueryRow(name).Scan(&gauge)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			err = nil
 		}
 		return 0, false, err
@@ -75,6 +76,8 @@ const querySetGauge = `
 	DO UPDATE SET value=$2;
 `
 
+// XXX: Инкремент #13. Использую `INSERT...ON CONFLICT DO UPDATE`, поэтому нет смысла
+// проверять на pgerrcode.UniqueViolation.
 func (r *GaugesRepo) Set(name string, value model.Gauge) error {
 	stmt, err := r.s.db.Prepare(querySetGauge)
 	if err != nil {

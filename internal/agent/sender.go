@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Dmitrevicz/gometrics/internal/model"
+	"github.com/Dmitrevicz/gometrics/internal/retry"
 )
 
 type sender struct {
@@ -124,7 +125,19 @@ func (s *sender) SendBatched(metrics *Metrics) {
 
 	batch := s.prepareMetricsBatch(metrics)
 
-	err := s.sendBatched(batch)
+	var err error
+	retry := retry.NewRetrier(time.Second, 3)
+	err = retry.Do("send batched metrics", func() (error, bool) {
+		err = s.sendBatched(batch)
+		if err != nil {
+			var retriable RetriableError
+			if errors.As(err, &retriable) {
+				return retriable, true // do retry attempt
+			}
+		}
+
+		return err, false // nil or non-retriable error, skip retries
+	})
 	if err != nil {
 		log.Println("Got error while sending batched update request: " + err.Error())
 	}
@@ -286,7 +299,7 @@ func (s *sender) sendBatched(batch []model.Metrics) error {
 	// do request
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return fmt.Errorf("error while doing the request: %w", err)
+		return NewRetriableError(fmt.Errorf("error while doing the request: %w", err))
 	}
 	defer resp.Body.Close()
 
@@ -296,7 +309,11 @@ func (s *sender) sendBatched(batch []model.Metrics) error {
 	}
 
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("unexpected response status code: %s, body: %s", resp.Status, string(body))
+		err = fmt.Errorf("unexpected response status code: %s, body: %s", resp.Status, string(body))
+		if resp.StatusCode >= 500 && resp.StatusCode < 600 {
+			return NewRetriableError(err)
+		}
+		return err
 	}
 
 	return nil

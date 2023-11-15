@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/Dmitrevicz/gometrics/internal/agent"
+	"github.com/Dmitrevicz/gometrics/internal/logger"
 )
 
 // server address for metrics to be sent to
@@ -30,6 +31,11 @@ var batch = true
 func main() {
 	parseFlags()
 	checkEnvs()
+
+	if err := logger.Initialize(""); err != nil {
+		log.Fatalln("failed initializing logger:", err)
+	}
+	defer logger.Sync()
 
 	agent := agent.New(pollInterval, reportInterval, urlServer, batch)
 	agent.Start()

@@ -3,8 +3,10 @@ package server
 import (
 	"database/sql"
 	"net/http"
+	"time"
 
 	"github.com/Dmitrevicz/gometrics/internal/logger"
+	"github.com/Dmitrevicz/gometrics/internal/retry"
 	"github.com/Dmitrevicz/gometrics/internal/server/config"
 	"github.com/Dmitrevicz/gometrics/internal/storage"
 	"github.com/Dmitrevicz/gometrics/internal/storage/memstorage"
@@ -70,7 +72,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) configureStorage(cfg *config.Config) {
 	if cfg.DatabaseDSN != "" {
-		db, err := newDB(cfg.DatabaseDSN)
+		db, err := newDB(cfg.DatabaseDSN, true)
 		if err != nil {
 			// или лучше прокидывать error вверх до самого main.go и уже там вызывать fatal?
 			logger.Log.Fatal("Can't configure storage", zap.Error(err))
@@ -88,13 +90,34 @@ func (s *server) configureStorage(cfg *config.Config) {
 }
 
 // XXX: куда можно положить эту функцию?
-func newDB(dsn string) (*sql.DB, error) {
-	db, err := sql.Open("pgx", dsn)
-	if err != nil {
-		return nil, err
+func newDB(dsn string, withRetry bool) (db *sql.DB, err error) {
+	var (
+		retryInterval time.Duration
+		retries       int
+	)
+
+	if withRetry {
+		retryInterval = time.Second
+		retries = 3
 	}
 
-	if err := db.Ping(); err != nil {
+	// не совсем понял задание... попробовал навесить retry здесь...
+	// но вроде это здесь не нужно
+	retry := retry.NewRetrier(retryInterval, retries)
+	err = retry.Do("db open", func() (error, bool) {
+		db, err = sql.Open("pgx", dsn)
+		if err != nil {
+			return err, postgres.CheckRetriableErrors(err)
+		}
+
+		if err = db.Ping(); err != nil {
+			return err, postgres.CheckRetriableErrors(err)
+		}
+
+		return nil, false
+	})
+
+	if err != nil {
 		return nil, err
 	}
 

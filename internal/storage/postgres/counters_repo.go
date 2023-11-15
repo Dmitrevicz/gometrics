@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"database/sql"
+	"errors"
 
 	"github.com/Dmitrevicz/gometrics/internal/model"
 )
@@ -29,7 +30,7 @@ func (r *CountersRepo) Get(name string) (model.Counter, bool, error) {
 	var counter model.Counter
 	err = stmt.QueryRow(name).Scan(&counter)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			err = nil
 		}
 		return 0, false, err
@@ -75,6 +76,8 @@ const querySetCounter = `
 	DO UPDATE SET value = counters.value + $2;
 `
 
+// XXX: Инкремент #13. Использую `INSERT...ON CONFLICT DO UPDATE`, поэтому нет смысла
+// проверять на pgerrcode.UniqueViolation.
 func (r *CountersRepo) Set(name string, value model.Counter) error {
 	stmt, err := r.s.db.Prepare(querySetCounter)
 	if err != nil {
