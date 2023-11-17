@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Dmitrevicz/gometrics/internal/logger"
+	"github.com/Dmitrevicz/gometrics/internal/model"
 	"github.com/Dmitrevicz/gometrics/internal/retry"
 	"github.com/Dmitrevicz/gometrics/internal/server/config"
 	"github.com/Dmitrevicz/gometrics/internal/storage"
@@ -104,17 +105,23 @@ func newDB(dsn string, withRetry bool) (db *sql.DB, err error) {
 	// не совсем понял задание... попробовал навесить retry здесь...
 	// но вроде это здесь не нужно
 	retry := retry.NewRetrier(retryInterval, retries)
-	err = retry.Do("db open", func() (error, bool) {
+	err = retry.Do("db open", func() error {
 		db, err = sql.Open("pgx", dsn)
 		if err != nil {
-			return err, postgres.CheckRetriableErrors(err)
+			if postgres.CheckRetriableErrors(err) {
+				err = model.NewRetriableError(err)
+			}
+			return err
 		}
 
 		if err = db.Ping(); err != nil {
-			return err, postgres.CheckRetriableErrors(err)
+			if postgres.CheckRetriableErrors(err) {
+				err = model.NewRetriableError(err)
+			}
+			return err
 		}
 
-		return nil, false
+		return nil
 	})
 
 	if err != nil {

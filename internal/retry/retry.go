@@ -31,16 +31,17 @@
 package retry
 
 import (
+	"errors"
 	"time"
 
 	"github.com/Dmitrevicz/gometrics/internal/logger"
+	"github.com/Dmitrevicz/gometrics/internal/model"
 	"go.uber.org/zap"
 )
 
 type Retrier struct {
 	interval time.Duration
 	retries  int
-	i        int
 }
 
 func NewRetrier(interval time.Duration, retries int) *Retrier {
@@ -60,8 +61,11 @@ func NewRetrier(interval time.Duration, retries int) *Retrier {
 	return &r
 }
 
-func (r *Retrier) progression() {
-	if r.i == 0 || r.i > 5 {
+// progression decides what duration till next attempt should be waited
+func (r *Retrier) progression(currentAttempt int) {
+	if currentAttempt == 0 || currentAttempt > 5 {
+		// interval duration will be increased at max 5 times
+		// to prevent potentially endless wait
 		return
 	}
 
@@ -71,17 +75,17 @@ func (r *Retrier) progression() {
 // Do does a retry of f(). Second bool param can be used to stop retries
 // (e.g. when you need to attempt a retry only for some particular error
 // but instantly return other errors without a retry).
-func (r *Retrier) Do(action string, f func() (error, bool)) (err error) {
-	var try bool
-	for r.i = 0; r.i <= r.retries; r.i++ {
-		if r.i > 0 {
+func (r *Retrier) Do(action string, f func() error) (err error) {
+	var retriable model.RetriableError
+	for i := 0; i <= r.retries; i++ {
+		if i > 0 {
 			time.Sleep(r.interval)
-			r.progression()
-			logger.Log.Info("retrying...", zap.String("action", action), zap.Int("attempt", r.i))
+			r.progression(i)
+			logger.Log.Info("retrying...", zap.String("action", action), zap.Int("attempt", i))
 		}
 
-		if err, try = f(); err == nil || !try {
-			break
+		if err = f(); err == nil || !errors.As(err, &retriable) {
+			break // no need to try again
 		}
 	}
 
