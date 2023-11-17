@@ -3,6 +3,7 @@ package agent
 import (
 	"log"
 
+	"github.com/Dmitrevicz/gometrics/internal/agent/config"
 	"github.com/Dmitrevicz/gometrics/internal/model"
 )
 
@@ -18,14 +19,14 @@ type Agent struct {
 	sender *sender
 }
 
-func New(pollInterval, reportInterval int, url string, batch bool) *Agent {
-	log.Printf("intervals (in seconds) - poll: %d, report: %d\n", pollInterval, reportInterval)
-	log.Printf("url: \"%s\"\n", url)
+func New(cfg *config.Config) *Agent {
+	log.Printf("intervals (in seconds) - poll: %d, report: %d\n", cfg.PollInterval, cfg.ReportInterval)
+	log.Printf("url: \"%s\"\n", cfg.ServerURL)
 
-	poller := NewPoller(pollInterval)
+	poller := NewPoller(cfg.PollInterval)
 	return &Agent{
 		poller: poller,
-		sender: NewSender(reportInterval, url, batch, poller),
+		sender: NewSender(cfg.ReportInterval, cfg.ServerURL, cfg.Batch, poller),
 	}
 }
 
