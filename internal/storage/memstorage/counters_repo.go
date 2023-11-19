@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/Dmitrevicz/gometrics/internal/model"
+	"github.com/Dmitrevicz/gometrics/internal/storage"
 )
 
 type CountersRepo struct {
@@ -17,12 +18,18 @@ func NewCountersRepo() *CountersRepo {
 	}
 }
 
-func (s *CountersRepo) Get(name string) (model.Counter, bool, error) {
+// Get finds metric by name. When requested metric doesn't exist
+// storage.ErrNotFound error is returned.
+func (s *CountersRepo) Get(name string) (model.Counter, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	v, ok := s.counters[name]
-	return v, ok, nil
+	if !ok {
+		return 0, storage.ErrNotFound
+	}
+
+	return v, nil
 }
 
 func (s *CountersRepo) GetAll() (map[string]model.Counter, error) {

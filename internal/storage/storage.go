@@ -15,7 +15,9 @@ type Storage interface {
 }
 
 type GaugesRepository interface {
-	Get(name string) (model.Gauge, bool, error)
+	// Get finds metric by name. When requested metric doesn't exist
+	// storage.ErrNotFound error is returned.
+	Get(name string) (model.Gauge, error)
 	GetAll() (map[string]model.Gauge, error)
 	Set(name string, value model.Gauge) error
 	Delete(name string) error
@@ -23,7 +25,9 @@ type GaugesRepository interface {
 }
 
 type CountersRepository interface {
-	Get(name string) (model.Counter, bool, error)
+	// Get finds metric by name. When requested metric doesn't exist
+	// storage.ErrNotFound error is returned.
+	Get(name string) (model.Counter, error)
 	GetAll() (map[string]model.Counter, error)
 	Set(name string, value model.Counter) error
 	Delete(name string) error

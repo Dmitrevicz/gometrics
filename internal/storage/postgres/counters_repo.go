@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/Dmitrevicz/gometrics/internal/model"
+	"github.com/Dmitrevicz/gometrics/internal/storage"
 )
 
 type CountersRepo struct {
@@ -19,11 +20,12 @@ func NewCountersRepo(storage *Storage) *CountersRepo {
 
 const queryGetCounter = `SELECT value FROM counters WHERE name=$1;`
 
-// Get - bool result param shows if metric was found or not.
-func (r *CountersRepo) Get(name string) (model.Counter, bool, error) {
+// Get finds metric by name. When requested metric doesn't exist
+// storage.ErrNotFound error is returned.
+func (r *CountersRepo) Get(name string) (model.Counter, error) {
 	stmt, err := r.s.db.Prepare(queryGetCounter)
 	if err != nil {
-		return 0, false, err
+		return 0, err
 	}
 	defer stmt.Close()
 
@@ -31,12 +33,12 @@ func (r *CountersRepo) Get(name string) (model.Counter, bool, error) {
 	err = stmt.QueryRow(name).Scan(&counter)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			err = nil
+			err = storage.ErrNotFound
 		}
-		return 0, false, err
+		return 0, err
 	}
 
-	return counter, true, nil
+	return counter, nil
 }
 
 const queryGetCountersAll = `SELECT name, value FROM counters;`

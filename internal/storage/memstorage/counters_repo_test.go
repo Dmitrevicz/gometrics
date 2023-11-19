@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/Dmitrevicz/gometrics/internal/model"
+	"github.com/Dmitrevicz/gometrics/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,16 +24,16 @@ func TestCountersRepo_Get(t *testing.T) {
 		err := s.Counters().Set(counter.name, counter.value)
 		require.NoError(t, err)
 
-		got, ok, err := s.Counters().Get(counter.name)
+		got, err := s.Counters().Get(counter.name)
+		require.NotErrorIs(t, err, storage.ErrNotFound, "unexpected ErrNotFound when error must be nil")
 		require.NoError(t, err)
-		require.True(t, ok, "expected ok=true, but nothing was found")
 		assert.Equal(t, counter.value, got)
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		got, ok, err := s.Counters().Get("unknown-test-counter")
-		require.NoError(t, err)
-		require.Falsef(t, ok, "expected ok=false, but counter was found - name: %s, counter: %d", counter.name, got)
+		got, err := s.Counters().Get("unknown-test-counter")
+		require.Errorf(t, err, "expected nothing (ErrNotFound), but found something - name: %s, counter: %d", counter.name, got)
+		require.ErrorIs(t, err, storage.ErrNotFound, "expected ErrNotFound")
 		assert.EqualValues(t, 0, got)
 	})
 }
@@ -95,9 +96,9 @@ func TestCountersRepo_Set(t *testing.T) {
 	err := s.Counters().Set(counter.name, counter.value)
 	require.NoError(t, err)
 
-	got, ok, err := s.Counters().Get(counter.name)
+	got, err := s.Counters().Get(counter.name)
+	require.NotErrorIs(t, err, storage.ErrNotFound, "ErrNotFound: nothing found after metric update attempt")
 	require.NoError(t, err)
-	require.True(t, ok, "expected ok=true, but nothing was found")
 	assert.Equal(t, counter.value, got)
 }
 
@@ -115,15 +116,15 @@ func TestCountersRepo_Delete(t *testing.T) {
 	err := s.Counters().Set(counter.name, counter.value)
 	require.NoError(t, err)
 
-	got, ok, err := s.Counters().Get(counter.name)
+	got, err := s.Counters().Get(counter.name)
+	require.NotErrorIs(t, err, storage.ErrNotFound, "ErrNotFound: nothing found after metric update attempt")
 	require.NoError(t, err)
-	require.True(t, ok, "expected ok=true, but nothing was found")
 	assert.Equal(t, counter.value, got)
 
 	err = s.Counters().Delete(counter.name)
 	require.NoError(t, err)
 
-	got, ok, err = s.Counters().Get(counter.name)
-	require.NoError(t, err)
-	require.Falsef(t, ok, "expected ok=false, but counter was found - name: %s, counter: %d", counter.name, got)
+	got, err = s.Counters().Get(counter.name)
+	require.Errorf(t, err, "expected nothing (ErrNotFound), but found something - name: %s, counter: %d", counter.name, got)
+	require.ErrorIs(t, err, storage.ErrNotFound, "expected ErrNotFound")
 }

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/Dmitrevicz/gometrics/internal/model"
+	"github.com/Dmitrevicz/gometrics/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,16 +24,16 @@ func TestGaugesRepo_Get(t *testing.T) {
 		err := s.Gauges().Set(gauge.name, gauge.value)
 		require.NoError(t, err)
 
-		got, ok, err := s.Gauges().Get(gauge.name)
+		got, err := s.Gauges().Get(gauge.name)
+		require.NotErrorIs(t, err, storage.ErrNotFound, "unexpected ErrNotFound when error must be nil")
 		require.NoError(t, err)
-		require.True(t, ok, "expected ok=true, but nothing was found")
 		assert.Equal(t, gauge.value, got)
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		got, ok, err := s.Gauges().Get("unknown-test-gauge")
-		require.NoError(t, err)
-		require.Falsef(t, ok, "expected ok=false, but gauge was found - name: %s, gauge: %d", gauge.name, got)
+		got, err := s.Gauges().Get("unknown-test-gauge")
+		require.Errorf(t, err, "expected nothing (ErrNotFound), but found something - name: %s, gauge: %d", gauge.name, got)
+		require.ErrorIs(t, err, storage.ErrNotFound, "expected ErrNotFound")
 		assert.EqualValues(t, 0, got)
 	})
 }
@@ -95,9 +96,9 @@ func TestGaugesRepo_Set(t *testing.T) {
 	err := s.Gauges().Set(gauge.name, gauge.value)
 	require.NoError(t, err)
 
-	got, ok, err := s.Gauges().Get(gauge.name)
+	got, err := s.Gauges().Get(gauge.name)
+	require.NotErrorIs(t, err, storage.ErrNotFound, "ErrNotFound: nothing found after metric update attempt")
 	require.NoError(t, err)
-	require.True(t, ok, "expected ok=true, but nothing was found")
 	assert.Equal(t, gauge.value, got)
 }
 
@@ -115,15 +116,15 @@ func TestGaugesRepo_Delete(t *testing.T) {
 	err := s.Gauges().Set(gauge.name, gauge.value)
 	require.NoError(t, err)
 
-	got, ok, err := s.Gauges().Get(gauge.name)
+	got, err := s.Gauges().Get(gauge.name)
+	require.NotErrorIs(t, err, storage.ErrNotFound, "ErrNotFound: nothing found after metric update attempt")
 	require.NoError(t, err)
-	require.True(t, ok, "expected ok=true, but nothing was found")
 	assert.Equal(t, gauge.value, got)
 
 	err = s.Gauges().Delete(gauge.name)
 	require.NoError(t, err)
 
-	got, ok, err = s.Gauges().Get(gauge.name)
-	require.NoError(t, err)
-	require.Falsef(t, ok, "expected ok=false, but gauge was found - name: %s, gauge: %d", gauge.name, got)
+	got, err = s.Gauges().Get(gauge.name)
+	require.Errorf(t, err, "expected nothing (ErrNotFound), but found something - name: %s, gauge: %d", gauge.name, got)
+	require.ErrorIs(t, err, storage.ErrNotFound, "expected ErrNotFound")
 }
