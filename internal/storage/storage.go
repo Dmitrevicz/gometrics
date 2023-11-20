@@ -19,6 +19,7 @@ type GaugesRepository interface {
 	GetAll() (map[string]model.Gauge, error)
 	Set(name string, value model.Gauge) error
 	Delete(name string) error
+	BatchUpdate(gauges []model.MetricGauge) (err error)
 }
 
 type CountersRepository interface {
@@ -26,4 +27,5 @@ type CountersRepository interface {
 	GetAll() (map[string]model.Counter, error)
 	Set(name string, value model.Counter) error
 	Delete(name string) error
+	BatchUpdate(counters []model.MetricCounter) (err error)
 }

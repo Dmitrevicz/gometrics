@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"net/http"
 	"strings"
@@ -90,8 +91,8 @@ func (h *Handlers) updateGauge(c *gin.Context, name, value string) {
 	}
 
 	if err = h.dumper.Dump(); err != nil {
-		logger.Log.Error("dumper failed", zap.Error(err))
-		http.Error(c.Writer, "dumper failed", http.StatusInternalServerError)
+		logger.Log.Error(ErrMsgDumperFail, zap.Error(err))
+		http.Error(c.Writer, ErrMsgDumperFail, http.StatusInternalServerError)
 		return
 	}
 
@@ -119,8 +120,8 @@ func (h *Handlers) updateCounter(c *gin.Context, name, value string) {
 	}
 
 	if err = h.dumper.Dump(); err != nil {
-		logger.Log.Error("dumper failed", zap.Error(err))
-		http.Error(c.Writer, "dumper failed", http.StatusInternalServerError)
+		logger.Log.Error(ErrMsgDumperFail, zap.Error(err))
+		http.Error(c.Writer, ErrMsgDumperFail, http.StatusInternalServerError)
 		return
 	}
 
@@ -182,8 +183,8 @@ func (h *Handlers) updateGaugeFromMetrics(c *gin.Context, m model.Metrics) {
 	m.Delta = nil
 
 	if err = h.dumper.Dump(); err != nil {
-		logger.Log.Error("dumper failed", zap.Error(err))
-		http.Error(c.Writer, "dumper failed", http.StatusInternalServerError)
+		logger.Log.Error(ErrMsgDumperFail, zap.Error(err))
+		http.Error(c.Writer, ErrMsgDumperFail, http.StatusInternalServerError)
 		return
 	}
 
@@ -209,8 +210,8 @@ func (h *Handlers) updateCounterFromMetrics(c *gin.Context, m model.Metrics) {
 	}
 
 	if err = h.dumper.Dump(); err != nil {
-		logger.Log.Error("dumper failed", zap.Error(err))
-		http.Error(c.Writer, "dumper failed", http.StatusInternalServerError)
+		logger.Log.Error(ErrMsgDumperFail, zap.Error(err))
+		http.Error(c.Writer, ErrMsgDumperFail, http.StatusInternalServerError)
 		return
 	}
 
@@ -229,6 +230,93 @@ func (h *Handlers) updateCounterFromMetrics(c *gin.Context, m model.Metrics) {
 	m.Value = &f
 
 	c.JSON(http.StatusOK, m)
+}
+
+func prepareBatchedMetrics(metrics []model.Metrics) (gs []model.MetricGauge, cs []model.MetricCounter, err error) {
+	if len(metrics) == 0 {
+		return
+	}
+
+	for _, metric := range metrics {
+		metric.ID = strings.TrimSpace(metric.ID)
+		metric.MType = strings.TrimSpace(metric.MType)
+
+		if metric.MType == "" {
+			return nil, nil, fmt.Errorf("%w: \"%s\"", ErrWrongMetricType, metric.MType)
+		}
+		if metric.ID == "" {
+			return nil, nil, ErrEmptyMetricName
+		}
+
+		switch metric.MType {
+		case model.MetricTypeGauge:
+			if metric.Value == nil {
+				return nil, nil, ErrWrongMetricValue
+			}
+
+			gs = append(gs, model.MetricGauge{
+				Name:  metric.ID,
+				Value: model.Gauge(*metric.Value),
+			})
+		case model.MetricTypeCounter:
+			if metric.Delta == nil {
+				return nil, nil, ErrWrongMetricValue
+			}
+
+			if *metric.Delta < 0 {
+				return nil, nil, ErrNegativeCounter
+			}
+
+			cs = append(cs, model.MetricCounter{
+				Name:  metric.ID,
+				Value: model.Counter(*metric.Delta),
+			})
+		default:
+			return nil, nil, fmt.Errorf("%w: \"%s\"", ErrWrongMetricType, metric.MType)
+		}
+	}
+
+	return
+}
+
+// UpdateBatch
+//
+// > Добавьте новый хендлер POST /updates/, принимающий в теле запроса
+// множество метрик в формате: []Metrics (списка метрик).
+func (h *Handlers) UpdateBatch(c *gin.Context) {
+	var req []model.Metrics
+
+	if err := json.NewDecoder(c.Request.Body).Decode(&req); err != nil {
+		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	gauges, counters, err := prepareBatchedMetrics(req)
+	if err != nil {
+		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+	logger.Log.Info("batch parsed", zap.Any("gauges", gauges), zap.Any("counters", counters))
+
+	if err = h.storage.Gauges().BatchUpdate(gauges); err != nil {
+		logger.Log.Error(ErrMsgStorageFail, zap.Error(err))
+		http.Error(c.Writer, ErrMsgStorageFail, http.StatusInternalServerError)
+		return
+	}
+
+	if err = h.storage.Counters().BatchUpdate(counters); err != nil {
+		logger.Log.Error(ErrMsgStorageFail, zap.Error(err))
+		http.Error(c.Writer, ErrMsgStorageFail, http.StatusInternalServerError)
+		return
+	}
+
+	if err = h.dumper.Dump(); err != nil {
+		logger.Log.Error(ErrMsgDumperFail, zap.Error(err))
+		http.Error(c.Writer, ErrMsgDumperFail, http.StatusInternalServerError)
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
 
 // GetMetricByName returns metric value by its name

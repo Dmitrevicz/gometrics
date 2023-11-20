@@ -53,3 +53,14 @@ func (s *GaugesRepo) Delete(name string) error {
 	delete(s.gauges, name)
 	return nil
 }
+
+func (s *GaugesRepo) BatchUpdate(gauges []model.MetricGauge) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, g := range gauges {
+		s.gauges[g.Name] = g.Value
+	}
+
+	return nil
+}
