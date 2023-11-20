@@ -20,15 +20,18 @@ func TestGaugesRepo_Get(t *testing.T) {
 	}
 
 	t.Run("found", func(t *testing.T) {
-		s.Gauges().Set(gauge.name, gauge.value)
+		err := s.Gauges().Set(gauge.name, gauge.value)
+		require.NoError(t, err)
 
-		got, ok := s.Gauges().Get(gauge.name)
+		got, ok, err := s.Gauges().Get(gauge.name)
+		require.NoError(t, err)
 		require.True(t, ok, "expected ok=true, but nothing was found")
 		assert.Equal(t, gauge.value, got)
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		got, ok := s.Gauges().Get("unknown-test-gauge")
+		got, ok, err := s.Gauges().Get("unknown-test-gauge")
+		require.NoError(t, err)
 		require.Falsef(t, ok, "expected ok=false, but gauge was found - name: %s, gauge: %d", gauge.name, got)
 		assert.EqualValues(t, 0, got)
 	})
@@ -53,10 +56,12 @@ func TestGaugesRepo_GetAll(t *testing.T) {
 		s := New()
 
 		for _, c := range counters {
-			s.Gauges().Set(c.name, c.value)
+			err := s.Gauges().Set(c.name, c.value)
+			require.NoError(t, err)
 		}
 
-		got := s.Gauges().GetAll()
+		got, err := s.Gauges().GetAll()
+		require.NoError(t, err)
 		require.NotEmpty(t, got)
 		assert.Len(t, got, len(counters))
 	})
@@ -65,10 +70,12 @@ func TestGaugesRepo_GetAll(t *testing.T) {
 		s := New()
 
 		for _, c := range counters {
-			s.Gauges().Delete(c.name)
+			err := s.Gauges().Delete(c.name)
+			require.NoError(t, err)
 		}
 
-		got := s.Gauges().GetAll()
+		got, err := s.Gauges().GetAll()
+		require.NoError(t, err)
 		assert.Empty(t, got)
 		assert.Len(t, got, 0)
 	})
@@ -85,9 +92,11 @@ func TestGaugesRepo_Set(t *testing.T) {
 		value: model.Gauge(42.420),
 	}
 
-	s.Gauges().Set(gauge.name, gauge.value)
+	err := s.Gauges().Set(gauge.name, gauge.value)
+	require.NoError(t, err)
 
-	got, ok := s.Gauges().Get(gauge.name)
+	got, ok, err := s.Gauges().Get(gauge.name)
+	require.NoError(t, err)
 	require.True(t, ok, "expected ok=true, but nothing was found")
 	assert.Equal(t, gauge.value, got)
 }
@@ -103,14 +112,18 @@ func TestGaugesRepo_Delete(t *testing.T) {
 		value: model.Gauge(42.420),
 	}
 
-	s.Gauges().Set(gauge.name, gauge.value)
+	err := s.Gauges().Set(gauge.name, gauge.value)
+	require.NoError(t, err)
 
-	got, ok := s.Gauges().Get(gauge.name)
+	got, ok, err := s.Gauges().Get(gauge.name)
+	require.NoError(t, err)
 	require.True(t, ok, "expected ok=true, but nothing was found")
 	assert.Equal(t, gauge.value, got)
 
-	s.Gauges().Delete(gauge.name)
+	err = s.Gauges().Delete(gauge.name)
+	require.NoError(t, err)
 
-	got, ok = s.Gauges().Get(gauge.name)
+	got, ok, err = s.Gauges().Get(gauge.name)
+	require.NoError(t, err)
 	require.Falsef(t, ok, "expected ok=false, but gauge was found - name: %s, gauge: %d", gauge.name, got)
 }

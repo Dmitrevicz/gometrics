@@ -82,7 +82,12 @@ func (h *Handlers) updateGauge(c *gin.Context, name, value string) {
 		return
 	}
 
-	h.storage.Gauges().Set(name, gauge)
+	err = h.storage.Gauges().Set(name, gauge)
+	if err != nil {
+		logger.Log.Error(ErrMsgStorageFail, zap.Error(err))
+		http.Error(c.Writer, ErrMsgStorageFail, http.StatusInternalServerError)
+		return
+	}
 
 	if err = h.dumper.Dump(); err != nil {
 		logger.Log.Error("dumper failed", zap.Error(err))
@@ -106,7 +111,12 @@ func (h *Handlers) updateCounter(c *gin.Context, name, value string) {
 		return
 	}
 
-	h.storage.Counters().Set(name, counter)
+	err = h.storage.Counters().Set(name, counter)
+	if err != nil {
+		logger.Log.Error(ErrMsgStorageFail, zap.Error(err))
+		http.Error(c.Writer, ErrMsgStorageFail, http.StatusInternalServerError)
+		return
+	}
 
 	if err = h.dumper.Dump(); err != nil {
 		logger.Log.Error("dumper failed", zap.Error(err))
@@ -163,10 +173,15 @@ func (h *Handlers) updateGaugeFromMetrics(c *gin.Context, m model.Metrics) {
 		return
 	}
 
-	h.storage.Gauges().Set(m.ID, model.Gauge(*m.Value))
+	err := h.storage.Gauges().Set(m.ID, model.Gauge(*m.Value))
+	if err != nil {
+		logger.Log.Error(ErrMsgStorageFail, zap.Error(err))
+		http.Error(c.Writer, ErrMsgStorageFail, http.StatusInternalServerError)
+		return
+	}
 	m.Delta = nil
 
-	if err := h.dumper.Dump(); err != nil {
+	if err = h.dumper.Dump(); err != nil {
 		logger.Log.Error("dumper failed", zap.Error(err))
 		http.Error(c.Writer, "dumper failed", http.StatusInternalServerError)
 		return
@@ -186,15 +201,25 @@ func (h *Handlers) updateCounterFromMetrics(c *gin.Context, m model.Metrics) {
 		return
 	}
 
-	h.storage.Counters().Set(m.ID, model.Counter(*m.Delta))
+	err := h.storage.Counters().Set(m.ID, model.Counter(*m.Delta))
+	if err != nil {
+		logger.Log.Error(ErrMsgStorageFail, zap.Error(err))
+		http.Error(c.Writer, ErrMsgStorageFail, http.StatusInternalServerError)
+		return
+	}
 
-	if err := h.dumper.Dump(); err != nil {
+	if err = h.dumper.Dump(); err != nil {
 		logger.Log.Error("dumper failed", zap.Error(err))
 		http.Error(c.Writer, "dumper failed", http.StatusInternalServerError)
 		return
 	}
 
-	counter, ok := h.storage.Counters().Get(m.ID)
+	counter, ok, err := h.storage.Counters().Get(m.ID)
+	if err != nil {
+		logger.Log.Error(ErrMsgStorageFail, zap.Error(err))
+		http.Error(c.Writer, ErrMsgStorageFail, http.StatusInternalServerError)
+		return
+	}
 	if !ok {
 		http.Error(c.Writer, ErrMsgNothingFound, http.StatusNotFound)
 		return
@@ -225,15 +250,22 @@ func (h *Handlers) GetMetricByName(c *gin.Context) {
 	var (
 		value interface{}
 		ok    bool
+		err   error
 	)
 
 	switch mType {
 	case model.MetricTypeGauge:
-		value, ok = h.storage.Gauges().Get(mName)
+		value, ok, err = h.storage.Gauges().Get(mName)
 	case model.MetricTypeCounter:
-		value, ok = h.storage.Counters().Get(mName)
+		value, ok, err = h.storage.Counters().Get(mName)
 	default:
 		http.Error(c.Writer, ErrMsgWrongMetricType, http.StatusBadRequest)
+		return
+	}
+
+	if err != nil {
+		logger.Log.Error(ErrMsgStorageFail, zap.Error(err))
+		http.Error(c.Writer, ErrMsgStorageFail, http.StatusInternalServerError)
 		return
 	}
 
@@ -273,19 +305,26 @@ func (h *Handlers) GetMetricByJSON(c *gin.Context) {
 	var (
 		value interface{}
 		ok    bool
+		err   error
 	)
 
 	switch req.MType {
 	case model.MetricTypeGauge:
-		value, ok = h.storage.Gauges().Get(req.ID)
+		value, ok, err = h.storage.Gauges().Get(req.ID)
 		f := float64(value.(model.Gauge))
 		req.Value = &f
 	case model.MetricTypeCounter:
-		value, ok = h.storage.Counters().Get(req.ID)
+		value, ok, err = h.storage.Counters().Get(req.ID)
 		d := int64(value.(model.Counter))
 		req.Delta = &d // автотесты требуют, чтобы counter отдавался в .Delta
 	default:
 		http.Error(c.Writer, ErrMsgWrongMetricType, http.StatusBadRequest)
+		return
+	}
+
+	if err != nil {
+		logger.Log.Error(ErrMsgStorageFail, zap.Error(err))
+		http.Error(c.Writer, ErrMsgStorageFail, http.StatusInternalServerError)
 		return
 	}
 
@@ -304,10 +343,24 @@ type metricsResponse struct {
 
 // GetAllMetrics - just for debugging, returns list of all metrics.
 func (h *Handlers) GetAllMetrics(c *gin.Context) {
-	var metrics metricsResponse
+	var (
+		metrics metricsResponse
+		err     error
+	)
 
-	metrics.Gauges = h.storage.Gauges().GetAll()
-	metrics.Counters = h.storage.Counters().GetAll()
+	metrics.Gauges, err = h.storage.Gauges().GetAll()
+	if err != nil {
+		logger.Log.Error(ErrMsgStorageFail, zap.Error(err))
+		http.Error(c.Writer, ErrMsgStorageFail, http.StatusInternalServerError)
+		return
+	}
+
+	metrics.Counters, err = h.storage.Counters().GetAll()
+	if err != nil {
+		logger.Log.Error(ErrMsgStorageFail, zap.Error(err))
+		http.Error(c.Writer, ErrMsgStorageFail, http.StatusInternalServerError)
+		return
+	}
 
 	resp, err := json.Marshal(metrics)
 	if err != nil {
@@ -353,10 +406,24 @@ type indexPageData struct {
 }
 
 func (h *Handlers) PageIndex(c *gin.Context) {
-	var pData indexPageData
+	var (
+		pData indexPageData
+		err   error
+	)
 
-	pData.Gauges = h.storage.Gauges().GetAll()
-	pData.Counters = h.storage.Counters().GetAll()
+	pData.Gauges, err = h.storage.Gauges().GetAll()
+	if err != nil {
+		logger.Log.Error(ErrMsgStorageFail, zap.Error(err))
+		http.Error(c.Writer, ErrMsgStorageFail, http.StatusInternalServerError)
+		return
+	}
+
+	pData.Counters, err = h.storage.Counters().GetAll()
+	if err != nil {
+		logger.Log.Error(ErrMsgStorageFail, zap.Error(err))
+		http.Error(c.Writer, ErrMsgStorageFail, http.StatusInternalServerError)
+		return
+	}
 
 	c.Writer.Header().Set("Content-Type", "text/html")
 	if err := pageTmpl.Execute(c.Writer, pData); err != nil {

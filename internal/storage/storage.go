@@ -15,15 +15,15 @@ type Storage interface {
 }
 
 type GaugesRepository interface {
-	Get(name string) (model.Gauge, bool)
-	GetAll() map[string]model.Gauge
-	Set(name string, value model.Gauge)
-	Delete(name string)
+	Get(name string) (model.Gauge, bool, error)
+	GetAll() (map[string]model.Gauge, error)
+	Set(name string, value model.Gauge) error
+	Delete(name string) error
 }
 
 type CountersRepository interface {
-	Get(name string) (model.Counter, bool)
-	GetAll() map[string]model.Counter
-	Set(name string, value model.Counter)
-	Delete(name string)
+	Get(name string) (model.Counter, bool, error)
+	GetAll() (map[string]model.Counter, error)
+	Set(name string, value model.Counter) error
+	Delete(name string) error
 }

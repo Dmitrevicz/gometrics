@@ -131,10 +131,20 @@ func (d *Dumper) dump() error {
 
 	logger.Log.Info("dump triggered")
 
-	var metrics metricsDump
+	var (
+		metrics metricsDump
+		err     error
+	)
 
-	metrics.Gauges = d.storage.Gauges().GetAll()
-	metrics.Counters = d.storage.Counters().GetAll()
+	metrics.Gauges, err = d.storage.Gauges().GetAll()
+	if err != nil {
+		return fmt.Errorf("gauges retrieval error: %w", err)
+	}
+
+	metrics.Counters, err = d.storage.Counters().GetAll()
+	if err != nil {
+		return fmt.Errorf("counters retrieval error: %w", err)
+	}
 
 	data, err := json.Marshal(metrics)
 	if err != nil {
@@ -185,11 +195,15 @@ func (d *Dumper) restore() error {
 	// restore all metrics in storage
 	counter := 0
 	for name, value := range metrics.Counters {
-		d.storage.Counters().Set(name, value)
+		if err = d.storage.Counters().Set(name, value); err != nil {
+			return fmt.Errorf("counters update error: %w", err)
+		}
 		counter++
 	}
 	for name, value := range metrics.Gauges {
-		d.storage.Gauges().Set(name, value)
+		if err = d.storage.Gauges().Set(name, value); err != nil {
+			return fmt.Errorf("gauges update error: %w", err)
+		}
 		counter++
 	}
 
