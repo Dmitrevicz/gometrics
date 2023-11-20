@@ -81,6 +81,7 @@ func parseFlags(cfg *config.Config) error {
 	flag.StringVar(&cfg.ServerAddress, "a", cfg.ServerAddress, "TCP address for the server to listen on")
 	flag.StringVar(&cfg.LogLevel, "loglvl", cfg.LogLevel, "logger level")
 	flag.StringVar(&cfg.FileStoragePath, "f", cfg.FileStoragePath, "file path for metrics data to be dumped in")
+	flag.StringVar(&cfg.DatabaseDSN, "d", cfg.DatabaseDSN, "data source name to connect to database")
 	flag.IntVar(&cfg.StoreInterval, "i", cfg.StoreInterval, "interval in seconds for current metrics data to be dumped into file")
 	flag.BoolVar(&cfg.Restore, "r", cfg.Restore, "shows if data restore from file should be made")
 
@@ -97,6 +98,10 @@ func parseFlags(cfg *config.Config) error {
 
 	if e, ok := os.LookupEnv("FILE_STORAGE_PATH"); ok {
 		cfg.FileStoragePath = e
+	}
+
+	if e, ok := os.LookupEnv("DATABASE_DSN"); ok {
+		cfg.DatabaseDSN = e
 	}
 
 	if e, ok := os.LookupEnv("STORE_INTERVAL"); ok {
