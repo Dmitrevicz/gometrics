@@ -2,8 +2,10 @@ package postgres
 
 import (
 	"database/sql"
+	"errors"
 
 	"github.com/Dmitrevicz/gometrics/internal/model"
+	"github.com/Dmitrevicz/gometrics/internal/storage"
 )
 
 type GaugesRepo struct {
@@ -18,24 +20,25 @@ func NewGaugesRepo(storage *Storage) *GaugesRepo {
 
 const queryGetGauge = `SELECT value FROM gauges WHERE name=$1;`
 
-// Get - bool result param shows if metric was found or not.
-func (r *GaugesRepo) Get(name string) (model.Gauge, bool, error) {
+// Get finds metric by name. When requested metric doesn't exist
+// storage.ErrNotFound error is returned.
+func (r *GaugesRepo) Get(name string) (model.Gauge, error) {
 	stmt, err := r.s.db.Prepare(queryGetGauge)
 	if err != nil {
-		return 0, false, err
+		return 0, err
 	}
 	defer stmt.Close()
 
 	var gauge model.Gauge
 	err = stmt.QueryRow(name).Scan(&gauge)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			err = nil
+		if errors.Is(err, sql.ErrNoRows) {
+			err = storage.ErrNotFound
 		}
-		return 0, false, err
+		return 0, err
 	}
 
-	return gauge, true, nil
+	return gauge, nil
 }
 
 const queryGetGaugesAll = `SELECT name, value FROM gauges;`
@@ -75,6 +78,8 @@ const querySetGauge = `
 	DO UPDATE SET value=$2;
 `
 
+// XXX: Инкремент #13. Использую `INSERT...ON CONFLICT DO UPDATE`, поэтому нет смысла
+// проверять на pgerrcode.UniqueViolation.
 func (r *GaugesRepo) Set(name string, value model.Gauge) error {
 	stmt, err := r.s.db.Prepare(querySetGauge)
 	if err != nil {

@@ -2,8 +2,10 @@ package postgres
 
 import (
 	"database/sql"
+	"errors"
 
 	"github.com/Dmitrevicz/gometrics/internal/model"
+	"github.com/Dmitrevicz/gometrics/internal/storage"
 )
 
 type CountersRepo struct {
@@ -18,24 +20,25 @@ func NewCountersRepo(storage *Storage) *CountersRepo {
 
 const queryGetCounter = `SELECT value FROM counters WHERE name=$1;`
 
-// Get - bool result param shows if metric was found or not.
-func (r *CountersRepo) Get(name string) (model.Counter, bool, error) {
+// Get finds metric by name. When requested metric doesn't exist
+// storage.ErrNotFound error is returned.
+func (r *CountersRepo) Get(name string) (model.Counter, error) {
 	stmt, err := r.s.db.Prepare(queryGetCounter)
 	if err != nil {
-		return 0, false, err
+		return 0, err
 	}
 	defer stmt.Close()
 
 	var counter model.Counter
 	err = stmt.QueryRow(name).Scan(&counter)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			err = nil
+		if errors.Is(err, sql.ErrNoRows) {
+			err = storage.ErrNotFound
 		}
-		return 0, false, err
+		return 0, err
 	}
 
-	return counter, true, nil
+	return counter, nil
 }
 
 const queryGetCountersAll = `SELECT name, value FROM counters;`
@@ -75,6 +78,8 @@ const querySetCounter = `
 	DO UPDATE SET value = counters.value + $2;
 `
 
+// XXX: Инкремент #13. Использую `INSERT...ON CONFLICT DO UPDATE`, поэтому нет смысла
+// проверять на pgerrcode.UniqueViolation.
 func (r *CountersRepo) Set(name string, value model.Counter) error {
 	stmt, err := r.s.db.Prepare(querySetCounter)
 	if err != nil {

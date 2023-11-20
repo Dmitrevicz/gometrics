@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -215,14 +216,16 @@ func (h *Handlers) updateCounterFromMetrics(c *gin.Context, m model.Metrics) {
 		return
 	}
 
-	counter, ok, err := h.storage.Counters().Get(m.ID)
+	counter, err := h.storage.Counters().Get(m.ID)
 	if err != nil {
-		logger.Log.Error(ErrMsgStorageFail, zap.Error(err))
+		if errors.Is(err, storage.ErrNotFound) {
+			logger.Log.Error(ErrMsgNothingFound + " after update attempt")
+			http.Error(c.Writer, ErrMsgNothingFound, http.StatusInternalServerError)
+			return
+		}
+
+		logger.Log.Error(ErrMsgStorageFail+" after update attempt", zap.Error(err))
 		http.Error(c.Writer, ErrMsgStorageFail, http.StatusInternalServerError)
-		return
-	}
-	if !ok {
-		http.Error(c.Writer, ErrMsgNothingFound, http.StatusNotFound)
 		return
 	}
 
@@ -337,28 +340,27 @@ func (h *Handlers) GetMetricByName(c *gin.Context) {
 
 	var (
 		value interface{}
-		ok    bool
 		err   error
 	)
 
 	switch mType {
 	case model.MetricTypeGauge:
-		value, ok, err = h.storage.Gauges().Get(mName)
+		value, err = h.storage.Gauges().Get(mName)
 	case model.MetricTypeCounter:
-		value, ok, err = h.storage.Counters().Get(mName)
+		value, err = h.storage.Counters().Get(mName)
 	default:
 		http.Error(c.Writer, ErrMsgWrongMetricType, http.StatusBadRequest)
 		return
 	}
 
 	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			http.Error(c.Writer, ErrMsgNothingFound, http.StatusNotFound)
+			return
+		}
+
 		logger.Log.Error(ErrMsgStorageFail, zap.Error(err))
 		http.Error(c.Writer, ErrMsgStorageFail, http.StatusInternalServerError)
-		return
-	}
-
-	if !ok {
-		http.Error(c.Writer, ErrMsgNothingFound, http.StatusNotFound)
 		return
 	}
 
@@ -392,17 +394,16 @@ func (h *Handlers) GetMetricByJSON(c *gin.Context) {
 
 	var (
 		value interface{}
-		ok    bool
 		err   error
 	)
 
 	switch req.MType {
 	case model.MetricTypeGauge:
-		value, ok, err = h.storage.Gauges().Get(req.ID)
+		value, err = h.storage.Gauges().Get(req.ID)
 		f := float64(value.(model.Gauge))
 		req.Value = &f
 	case model.MetricTypeCounter:
-		value, ok, err = h.storage.Counters().Get(req.ID)
+		value, err = h.storage.Counters().Get(req.ID)
 		d := int64(value.(model.Counter))
 		req.Delta = &d // автотесты требуют, чтобы counter отдавался в .Delta
 	default:
@@ -411,13 +412,13 @@ func (h *Handlers) GetMetricByJSON(c *gin.Context) {
 	}
 
 	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			http.Error(c.Writer, ErrMsgNothingFound, http.StatusNotFound)
+			return
+		}
+
 		logger.Log.Error(ErrMsgStorageFail, zap.Error(err))
 		http.Error(c.Writer, ErrMsgStorageFail, http.StatusInternalServerError)
-		return
-	}
-
-	if !ok {
-		http.Error(c.Writer, ErrMsgNothingFound, http.StatusNotFound)
 		return
 	}
 

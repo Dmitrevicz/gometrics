@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/Dmitrevicz/gometrics/internal/model"
+	"github.com/Dmitrevicz/gometrics/internal/storage"
 )
 
 type GaugesRepo struct {
@@ -17,12 +18,18 @@ func NewGaugesRepo() *GaugesRepo {
 	}
 }
 
-func (s *GaugesRepo) Get(name string) (model.Gauge, bool, error) {
+// Get finds metric by name. When requested metric doesn't exist
+// storage.ErrNotFound error is returned.
+func (s *GaugesRepo) Get(name string) (model.Gauge, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	v, ok := s.gauges[name]
-	return v, ok, nil
+	if !ok {
+		return 0, storage.ErrNotFound
+	}
+
+	return v, nil
 }
 
 func (s *GaugesRepo) GetAll() (map[string]model.Gauge, error) {
