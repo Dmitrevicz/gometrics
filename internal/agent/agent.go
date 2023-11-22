@@ -26,7 +26,7 @@ func New(cfg *config.Config) *Agent {
 	poller := NewPoller(cfg.PollInterval)
 	return &Agent{
 		poller: poller,
-		sender: NewSender(cfg.ReportInterval, cfg.ServerURL, cfg.Batch, poller),
+		sender: NewSender(cfg.ReportInterval, cfg.ServerURL, cfg.Key, cfg.Batch, poller),
 	}
 }
 

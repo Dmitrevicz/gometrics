@@ -3,6 +3,9 @@ package agent
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,20 +16,23 @@ import (
 
 	"github.com/Dmitrevicz/gometrics/internal/model"
 	"github.com/Dmitrevicz/gometrics/internal/retry"
+	"github.com/Dmitrevicz/gometrics/internal/server"
 )
 
 type sender struct {
 	reportInterval int
 	url            string
+	key            string
 	batch          bool
 	poller         *poller
 	client         *http.Client
 }
 
-func NewSender(reportInterval int, url string, batch bool, poller *poller) *sender {
+func NewSender(reportInterval int, url, key string, batch bool, poller *poller) *sender {
 	return &sender{
 		reportInterval: reportInterval,
 		url:            url,
+		key:            key,
 		batch:          batch,
 		poller:         poller,
 		client:         NewClientDefault(),
@@ -285,6 +291,17 @@ func (s *sender) sendBatched(batch []model.Metrics) error {
 
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/json")
+
+	if s.key != "" {
+		// create body hash
+		hasher := hmac.New(sha256.New, []byte(s.key))
+		_, err = hasher.Write(b)
+		if err != nil {
+			return fmt.Errorf("error creating hash for request body: %w", err)
+		}
+		hash := hex.EncodeToString(hasher.Sum(nil))
+		req.Header.Set(server.HashHeader, hash)
+	}
 
 	// do request
 	resp, err := s.client.Do(req)
