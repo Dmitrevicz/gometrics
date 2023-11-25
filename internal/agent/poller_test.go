@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -45,7 +46,8 @@ func (s *AgentPollerSuit) TestStartTicker() {
 	const (
 		expectedPollCount = 2
 		pollInterval      = 2
-		checkTickInterval = (time.Second * pollInterval) / 2
+		raceWorkaround    = 30 * time.Millisecond
+		checkTickInterval = (time.Second*pollInterval)/2 + raceWorkaround
 		// 2*checkTickInterval is added to be sure that PollCount will 100% have enough time to reach expected value
 		durationTillTimout = time.Second*pollInterval*expectedPollCount + 2*checkTickInterval
 	)
@@ -55,7 +57,10 @@ func (s *AgentPollerSuit) TestStartTicker() {
 
 	s.Assert().Eventuallyf(
 		func() bool {
-			return p.PollCount == expectedPollCount
+			// `go test -race ./...` detects race and fails here
+			// return p.PollCount == expectedPollCount
+			pollCount := atomic.LoadInt64((*int64)(&p.PollCount))
+			return pollCount == expectedPollCount
 		},
 		durationTillTimout,
 		checkTickInterval,

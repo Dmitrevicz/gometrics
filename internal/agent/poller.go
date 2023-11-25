@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"runtime"
+	"sync/atomic"
 	"time"
 
 	"github.com/Dmitrevicz/gometrics/internal/model"
@@ -54,7 +55,8 @@ func (p *poller) Poll() {
 
 	// update additional metrics
 	p.RandomValue = model.Gauge(rand.Float64())
-	p.PollCount++
+	// p.PollCount++ // tests fail when trying: go test -race ./...
+	atomic.AddInt64((*int64)(&p.PollCount), 1) // tests fail on -race flag without this
 
 	p.LastPoll = time.Now()
 }
