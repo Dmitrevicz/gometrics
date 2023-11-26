@@ -14,9 +14,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Dmitrevicz/gometrics/internal/agent/config"
 	"github.com/Dmitrevicz/gometrics/internal/model"
 	"github.com/Dmitrevicz/gometrics/internal/retry"
 	"github.com/Dmitrevicz/gometrics/internal/server"
+	"golang.org/x/sync/errgroup"
 )
 
 type sender struct {
@@ -27,17 +29,27 @@ type sender struct {
 	poller         *poller
 	gopsutilPoller *gopsutilPoller
 	client         *http.Client
+
+	// Задание 15-го инкремента реализовал через семафор
+	//
+	// > "Количество одновременно исходящих запросов на сервер нужно ограничивать «сверху»"
+	Semaphore *Semaphore
 }
 
-func NewSender(reportInterval int, url, key string, batch bool, poller *poller, gopsutilPoller *gopsutilPoller) *sender {
+func NewSender(cfg *config.Config, poller *poller, gopsutilPoller *gopsutilPoller) *sender {
+	if cfg.RateLimit < 1 {
+		cfg.RateLimit = 1
+	}
+
 	return &sender{
-		reportInterval: reportInterval,
-		url:            url,
-		key:            key,
-		batch:          batch,
+		reportInterval: cfg.ReportInterval,
+		url:            cfg.ServerURL,
+		key:            cfg.Key,
+		batch:          cfg.Batch,
 		poller:         poller,
 		gopsutilPoller: gopsutilPoller,
 		client:         NewClientDefault(),
+		Semaphore:      NewSemaphore(cfg.RateLimit),
 	}
 }
 
@@ -77,21 +89,36 @@ func (s *sender) Send(metrics *Metrics) {
 	}
 
 	ts := time.Now()
+	g := new(errgroup.Group)
 
 	for name, gauge := range metrics.Gauges {
-		// TODO: make it async
-		err := s.sendMetrics(name, gauge)
-		if err != nil {
-			log.Println("Got error while sending gauge update request: " + err.Error())
-		}
+		name := name
+		gauge := gauge
+		// make it async
+		g.Go(func() error {
+			err := s.sendMetrics(name, gauge)
+			if err != nil {
+				return fmt.Errorf("gauge update request failed: %w", err)
+			}
+			return nil
+		})
 	}
 
 	for name, counter := range metrics.Counters {
-		// TODO: make it async
-		err := s.sendMetrics(name, counter)
-		if err != nil {
-			log.Println("Got error while sending counter update request: " + err.Error())
-		}
+		name := name
+		counter := counter
+		// make it async
+		g.Go(func() error {
+			err := s.sendMetrics(name, counter)
+			if err != nil {
+				return fmt.Errorf("counter update request failed: %w", err)
+			}
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		log.Println("Got error while sending metric update request: " + err.Error())
 	}
 
 	log.Printf("Metrics have been sent (%d in %v)\n", len(metrics.Counters)+len(metrics.Gauges), time.Since(ts))
@@ -201,6 +228,9 @@ func (s *sender) sendCounter(name string, value model.Counter) error {
 // sendMetrics - value must be either of type model.Counter or model.Gauge,
 // otherwise error will be returned.
 func (s *sender) sendMetrics(name string, value any) error {
+	s.Semaphore.Acquire()
+	defer s.Semaphore.Release()
+
 	// configure struct to be sent in request body
 	metrics := model.Metrics{
 		ID: name,
@@ -278,6 +308,9 @@ func (s *sender) compress(b []byte) (*bytes.Buffer, error) {
 
 // > Научите агент работать с использованием нового API (отправлять метрики батчами).
 func (s *sender) sendBatched(batch []model.Metrics) error {
+	s.Semaphore.Acquire()
+	defer s.Semaphore.Release()
+
 	b, err := json.Marshal(batch)
 	if err != nil {
 		return fmt.Errorf("error while preparing body for request: %w", err)

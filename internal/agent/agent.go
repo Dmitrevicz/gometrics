@@ -42,7 +42,7 @@ func New(cfg *config.Config) *Agent {
 	return &Agent{
 		poller:         poller,
 		gopsutilPoller: gopsutilPoller,
-		sender:         NewSender(cfg.ReportInterval, cfg.ServerURL, cfg.Key, cfg.Batch, poller, gopsutilPoller),
+		sender:         NewSender(cfg, poller, gopsutilPoller),
 	}
 }
 

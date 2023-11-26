@@ -17,6 +17,10 @@ type Config struct {
 	// При наличии ключа агент должен вычислять хеш и передавать
 	// в HTTP-заголовке запроса с именем HashSHA256.
 	Key string
+
+	// Флаг -l, переменная окружения RATE_LIMIT.
+	//   > количество одновременно исходящих запросов на сервер нужно ограничивать «сверху»
+	RateLimit int
 }
 
 // New creates config with default values set
@@ -26,5 +30,6 @@ func New() *Config {
 		PollInterval:   2,
 		ReportInterval: 10,
 		Batch:          true,
+		RateLimit:      1,
 	}
 }
