@@ -17,7 +17,8 @@ func TestSender(t *testing.T) {
 	defer ts.Close()
 
 	poller := NewPoller(0)
-	sender := NewSender(0, ts.URL, "", false, poller)
+	gopsutilPoller := NewGopsutilPoller(0)
+	sender := NewSender(0, ts.URL, "", false, poller, gopsutilPoller)
 
 	gaugeValue := model.Gauge(42.420)
 	counterValue := model.Counter(42)

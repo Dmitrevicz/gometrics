@@ -25,16 +25,18 @@ type sender struct {
 	key            string
 	batch          bool
 	poller         *poller
+	gopsutilPoller *gopsutilPoller
 	client         *http.Client
 }
 
-func NewSender(reportInterval int, url, key string, batch bool, poller *poller) *sender {
+func NewSender(reportInterval int, url, key string, batch bool, poller *poller, gopsutilPoller *gopsutilPoller) *sender {
 	return &sender{
 		reportInterval: reportInterval,
 		url:            url,
 		key:            key,
 		batch:          batch,
 		poller:         poller,
+		gopsutilPoller: gopsutilPoller,
 		client:         NewClientDefault(),
 	}
 }
@@ -51,12 +53,15 @@ func (s *sender) Start() {
 
 		ts = time.Now()
 
+		metrics := s.poller.AcquireMetrics()
+		metrics.Merge(s.gopsutilPoller.AcquireMetrics())
+
 		// iteration-12:
 		// > Научите агент работать с использованием нового API (отправлять метрики батчами).
 		if s.batch {
-			s.SendBatched(s.poller.AcquireMetrics())
+			s.SendBatched(metrics)
 		} else {
-			s.Send(s.poller.AcquireMetrics())
+			s.Send(metrics)
 		}
 
 		fmt.Println("send fired:", time.Since(ts))
@@ -96,6 +101,7 @@ func (s *sender) prepareMetricsBatch(metrics *Metrics) (batch []model.Metrics) {
 	batch = make([]model.Metrics, 0, len(metrics.Gauges)+len(metrics.Counters))
 
 	for name, val := range metrics.Gauges {
+		val := val
 		gauge := model.Metrics{
 			MType: model.MetricTypeGauge,
 			ID:    name,
@@ -105,6 +111,7 @@ func (s *sender) prepareMetricsBatch(metrics *Metrics) (batch []model.Metrics) {
 	}
 
 	for name, val := range metrics.Counters {
+		val := val
 		counter := model.Metrics{
 			MType: model.MetricTypeCounter,
 			ID:    name,

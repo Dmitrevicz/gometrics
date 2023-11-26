@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -25,7 +24,7 @@ func (s *AgentPollerSuit) TestPoll() {
 	// check initial values of poller fields
 	s.Assert().Empty(p.stat, "initial poller stat structure is expected to have zero-values")
 	s.Assert().LessOrEqual(p.LastPoll, time.Now(), "initial poller LastPoll timestamp is wrong")
-	s.Assert().Zero(p.PollCount, "initial poller PollCount value must be 0")
+	s.Assert().Zero(p.PollCount(), "initial poller PollCount value must be 0")
 
 	// no need to continue if poller initialization have already failed
 	if s.T().Failed() {
@@ -38,7 +37,7 @@ func (s *AgentPollerSuit) TestPoll() {
 	// check that metrics data was updated after the Poll()
 	s.Assert().NotEmpty(p.stat, "poller stat structure wasn't updated after Poll")
 	s.Assert().WithinRange(p.LastPoll, prevPollTime, time.Now(), "wrong timestamp after Poll call")
-	s.Assert().Equal(model.Counter(1), p.PollCount, "wrong poller PollCount value after poll call")
+	s.Assert().Equal(model.Counter(1), p.PollCount(), "wrong poller PollCount value after poll call")
 }
 
 // TestStart checks Polls being called within timer
@@ -46,8 +45,7 @@ func (s *AgentPollerSuit) TestStartTicker() {
 	const (
 		expectedPollCount = 2
 		pollInterval      = 2
-		raceWorkaround    = 30 * time.Millisecond
-		checkTickInterval = (time.Second*pollInterval)/2 + raceWorkaround
+		checkTickInterval = (time.Second * pollInterval) / 2
 		// 2*checkTickInterval is added to be sure that PollCount will 100% have enough time to reach expected value
 		durationTillTimout = time.Second*pollInterval*expectedPollCount + 2*checkTickInterval
 	)
@@ -58,9 +56,8 @@ func (s *AgentPollerSuit) TestStartTicker() {
 	s.Assert().Eventuallyf(
 		func() bool {
 			// `go test -race ./...` detects race and fails here
-			// return p.PollCount == expectedPollCount
-			pollCount := atomic.LoadInt64((*int64)(&p.PollCount))
-			return pollCount == expectedPollCount
+			// when accessed poller data without mutex or other syncronizations
+			return p.PollCount() == expectedPollCount
 		},
 		durationTillTimout,
 		checkTickInterval,
