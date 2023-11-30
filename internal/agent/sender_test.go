@@ -4,20 +4,29 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	configAgent "github.com/Dmitrevicz/gometrics/internal/agent/config"
 	"github.com/Dmitrevicz/gometrics/internal/model"
 	"github.com/Dmitrevicz/gometrics/internal/server"
-	"github.com/Dmitrevicz/gometrics/internal/server/config"
+	configServer "github.com/Dmitrevicz/gometrics/internal/server/config"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSender(t *testing.T) {
-	cfg := config.NewTesting()
+	cfgServer := configServer.NewTesting()
 
-	ts := httptest.NewServer(server.New(cfg))
+	ts := httptest.NewServer(server.New(cfgServer))
 	defer ts.Close()
 
-	poller := NewPoller(0)
-	sender := NewSender(0, ts.URL, "", false, poller)
+	cfgAgent := &configAgent.Config{
+		ServerURL:      ts.URL,
+		Key:            "",
+		PollInterval:   0,
+		ReportInterval: 0,
+		Batch:          false,
+	}
+	poller := NewPoller(cfgAgent.PollInterval)
+	gopsutilPoller := NewGopsutilPoller(cfgAgent.PollInterval)
+	sender := NewSender(cfgAgent, poller, gopsutilPoller)
 
 	gaugeValue := model.Gauge(42.420)
 	counterValue := model.Counter(42)

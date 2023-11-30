@@ -5,7 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"runtime"
-	"sync/atomic"
+	"sync"
 	"time"
 
 	"github.com/Dmitrevicz/gometrics/internal/model"
@@ -16,11 +16,12 @@ type poller struct {
 
 	stat runtime.MemStats // gauges will be polling here
 
-	PollCount   model.Counter // additional custom counter value
+	pollCount   model.Counter // additional custom counter value
 	RandomValue model.Gauge   // additional custom gauge value
 	LastPoll    time.Time
 
-	// mu sync.RWMutex // (maybe stat structure should be protected with mutex)
+	// polled data must be protected because accessed from separate goroutines
+	mu sync.RWMutex
 }
 
 func NewPoller(pollInterval int) *poller {
@@ -47,18 +48,25 @@ func (p *poller) Start() {
 
 // Poll updates metrics data every pollInterval seconds
 func (p *poller) Poll() {
-	// p.mu.Lock()
-	// defer p.mu.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
 	// update main metrics data
 	runtime.ReadMemStats(&p.stat)
 
 	// update additional metrics
 	p.RandomValue = model.Gauge(rand.Float64())
-	// p.PollCount++ // tests fail when trying: go test -race ./...
-	atomic.AddInt64((*int64)(&p.PollCount), 1) // tests fail on -race flag without this
+	p.pollCount++ // tests failed here when run with -race flag and there were no mutex or any other syncronization
 
 	p.LastPoll = time.Now()
+}
+
+func (p *poller) PollCount() (pc model.Counter) {
+	p.mu.RLock()
+	pc = p.pollCount
+	p.mu.RUnlock()
+
+	return
 }
 
 // AcquireMetrics prepares struct of metrics data ready to be sent to server
@@ -68,12 +76,12 @@ func (p *poller) AcquireMetrics() (s *Metrics) {
 	// before usage. (Even though struct itself is pretty big, so might be worth
 	// considering pointers&locks usage instead)
 
-	// p.mu.RLock()
-	// defer p.mu.RUnlock()
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 
 	s = new(Metrics)
 	s.Counters = map[string]model.Counter{
-		"PollCount": p.PollCount, // additional custom counter value
+		"PollCount": p.pollCount, // additional custom counter value
 	}
 
 	s.Gauges = map[string]model.Gauge{

@@ -46,6 +46,7 @@ func parseFlags(cfg *config.Config) {
 	flag.StringVar(&cfg.Key, "k", cfg.Key, "hash key")
 	flag.IntVar(&cfg.PollInterval, "p", cfg.PollInterval, "poll interval in seconds")
 	flag.IntVar(&cfg.ReportInterval, "r", cfg.ReportInterval, "report interval in seconds")
+	flag.IntVar(&cfg.RateLimit, "l", cfg.RateLimit, "rate limit (number of max concurrent senders)")
 	flag.BoolVar(&cfg.Batch, "batch", cfg.Batch, "send metrics update request in single batch")
 
 	// have to implement a workaround to trick buggy autotests
@@ -98,6 +99,14 @@ func checkEnvs(cfg *config.Config) {
 		cfg.PollInterval, err = strconv.Atoi(e)
 		if err != nil {
 			log.Fatalln("Error parsing POLL_INTERVAL from env: ", err)
+			return
+		}
+	}
+
+	if e, ok := os.LookupEnv("RATE_LIMIT"); ok {
+		cfg.RateLimit, err = strconv.Atoi(e)
+		if err != nil {
+			log.Fatalln("Error parsing RATE_LIMIT from env: ", err)
 			return
 		}
 	}
