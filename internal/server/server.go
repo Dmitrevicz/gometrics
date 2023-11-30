@@ -44,6 +44,11 @@ func New(cfg *config.Config) *server {
 
 	r.Use(Gzip())
 
+	if cfg.Key != "" {
+		r.Use(HashCheck(cfg.Key))
+		r.Use(Hash(cfg.Key))
+	}
+
 	// TODO: move routes configuration to separate func
 	r.GET("/", s.handlers.PageIndex)
 	r.GET("/all", s.handlers.GetAllMetrics)

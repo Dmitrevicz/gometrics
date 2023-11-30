@@ -26,6 +26,8 @@ func main() {
 	}
 	defer logger.Sync()
 
+	logger.Log.Sugar().Infof("Agent config: %+v", cfg)
+
 	agent := agent.New(cfg)
 	agent.Start()
 
@@ -41,6 +43,7 @@ func waitExit() {
 
 func parseFlags(cfg *config.Config) {
 	// flag.StringVar(&urlServer, "a", "http://localhost:8080", "api endpoint address")
+	flag.StringVar(&cfg.Key, "k", cfg.Key, "hash key")
 	flag.IntVar(&cfg.PollInterval, "p", cfg.PollInterval, "poll interval in seconds")
 	flag.IntVar(&cfg.ReportInterval, "r", cfg.ReportInterval, "report interval in seconds")
 	flag.BoolVar(&cfg.Batch, "batch", cfg.Batch, "send metrics update request in single batch")
@@ -77,6 +80,10 @@ func checkEnvs(cfg *config.Config) {
 			log.Printf("Provided ENV ADDRESS=\"%s\" lacks protocol scheme, attempt to fix it will be made\n", e)
 			cfg.ServerURL = "http://" + e
 		}
+	}
+
+	if e, ok := os.LookupEnv("KEY"); ok {
+		cfg.Key = e
 	}
 
 	if e, ok := os.LookupEnv("REPORT_INTERVAL"); ok {

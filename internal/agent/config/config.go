@@ -12,6 +12,11 @@ type Config struct {
 
 	// Shows if metrics update request should be sent in single batch
 	Batch bool
+
+	// Флаг -k=<КЛЮЧ> и переменная окружения KEY=<КЛЮЧ>.
+	// При наличии ключа агент должен вычислять хеш и передавать
+	// в HTTP-заголовке запроса с именем HashSHA256.
+	Key string
 }
 
 // New creates config with default values set
