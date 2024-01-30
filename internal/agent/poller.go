@@ -11,6 +11,7 @@ import (
 	"github.com/Dmitrevicz/gometrics/internal/model"
 )
 
+// poller updates metrics data every pollInterval seconds
 type poller struct {
 	pollInterval int
 
@@ -24,12 +25,15 @@ type poller struct {
 	mu sync.RWMutex
 }
 
+// NewPoller returns a poller that should be used to gather metrics data every
+// pollInterval seconds.
 func NewPoller(pollInterval int) *poller {
 	return &poller{
 		pollInterval: pollInterval,
 	}
 }
 
+// Start starts updating metrics data every pollInterval seconds.
 func (p *poller) Start() {
 	log.Println("Poller started")
 
@@ -46,7 +50,7 @@ func (p *poller) Start() {
 	}
 }
 
-// Poll updates metrics data every pollInterval seconds
+// Poll retrieves metrics data from runtime.
 func (p *poller) Poll() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -61,6 +65,7 @@ func (p *poller) Poll() {
 	p.LastPoll = time.Now()
 }
 
+// PollCount returns current counter value representing number of polls.
 func (p *poller) PollCount() (pc model.Counter) {
 	p.mu.RLock()
 	pc = p.pollCount
