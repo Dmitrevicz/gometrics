@@ -1,3 +1,8 @@
+// Package agent represents agent service that gathers runtime metrics.
+//
+// Package contains poller and sender.
+// Poller is used to periodically gather runtime metrics data.
+// Sender sends data, gathered by the poller, to the server.
 package agent
 
 import (
@@ -7,7 +12,7 @@ import (
 	"github.com/Dmitrevicz/gometrics/internal/model"
 )
 
-// Metrics data to be sent to the server
+// Metrics data to be sent to the server.
 type Metrics struct {
 	Gauges   map[string]model.Gauge
 	Counters map[string]model.Counter
@@ -25,7 +30,7 @@ func (m1 *Metrics) Merge(m2 *Metrics) {
 	}
 }
 
-// Agent is responsible for gathering and sending metrics to server
+// Agent is responsible for gathering and sending metrics to server.
 type Agent struct {
 	poller         *poller
 	gopsutilPoller *gopsutilPoller
@@ -33,6 +38,7 @@ type Agent struct {
 	sender *sender
 }
 
+// New creates new agent service.
 func New(cfg *config.Config) *Agent {
 	log.Printf("intervals (in seconds) - poll: %d, report: %d\n", cfg.PollInterval, cfg.ReportInterval)
 	log.Printf("url: \"%s\"\n", cfg.ServerURL)
@@ -46,7 +52,7 @@ func New(cfg *config.Config) *Agent {
 	}
 }
 
-// Start initiates timers
+// Start initiates agent timers.
 func (a *Agent) Start() {
 	log.Println("Agent is starting its timers...")
 

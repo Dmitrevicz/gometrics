@@ -1,4 +1,5 @@
-// Package retry.
+// Package retry implements retrier that allows to try again specific retriable
+// errors.
 //
 // Задание инкремента #13
 //
@@ -39,11 +40,14 @@ import (
 	"go.uber.org/zap"
 )
 
+// Retrier implements retry behaviour.
 type Retrier struct {
 	interval time.Duration
 	retries  int
 }
 
+// NewRetrier creates new Retrier.
+// Retrier will be limited by provided max retries and starting interval.
 func NewRetrier(interval time.Duration, retries int) *Retrier {
 	if interval <= 0 {
 		interval = time.Second

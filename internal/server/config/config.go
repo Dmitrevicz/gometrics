@@ -1,5 +1,7 @@
+// Package config holds server service setup parameters.
 package config
 
+// Config holds server service setup parameters.
 type Config struct {
 	// address for the server to listen on
 	ServerAddress string
@@ -37,7 +39,7 @@ type Config struct {
 	Key string
 }
 
-// New creates config with default values set
+// New creates config with default values set.
 func New() *Config {
 	return &Config{
 		ServerAddress:   "localhost:8080",
@@ -48,7 +50,7 @@ func New() *Config {
 	}
 }
 
-// NewTesting returns config which is safe to use in tests
+// NewTesting returns config which is safe to use in tests.
 func NewTesting() *Config {
 	cfg := New()
 

@@ -1,3 +1,5 @@
+// Package server represents http server service that stores runtime metrics
+// gathered by the agent service.
 package server
 
 import (

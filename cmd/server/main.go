@@ -1,3 +1,6 @@
+// Package main represents entry point for http server service.
+//
+// Server service stores runtime metrics gathered by the agent service.
 package main
 
 import (
@@ -56,6 +59,7 @@ func main() {
 	waitShutdown(s, srv.Dumper)
 }
 
+// waitShutdown implements graceful shutdown.
 func waitShutdown(s *http.Server, dumper *server.Dumper) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
@@ -79,6 +83,8 @@ func waitShutdown(s *http.Server, dumper *server.Dumper) {
 	logger.Log.Info("Server was stopped")
 }
 
+// parseFlags parses Config fields from flags or env.
+// Environment variables will overwrite flags parameters.
 func parseFlags(cfg *config.Config) error {
 	flag.StringVar(&cfg.ServerAddress, "a", cfg.ServerAddress, "TCP address for the server to listen on")
 	flag.StringVar(&cfg.LogLevel, "loglvl", cfg.LogLevel, "logger level")

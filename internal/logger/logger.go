@@ -1,3 +1,4 @@
+// Package logger is based on go.uber.org/zap.
 package logger
 
 import (
@@ -31,7 +32,7 @@ func Initialize(level string) error {
 }
 
 // Sync ignores err check (to avoid lint warning).
-// Otherwise use logger.Log.Sync()
+// Otherwise use logger.Log.Sync().
 func Sync() {
 	_ = Log.Sync()
 }
