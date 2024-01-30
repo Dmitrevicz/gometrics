@@ -75,7 +75,7 @@ func (p *poller) PollCount() (pc model.Counter) {
 }
 
 // AcquireMetrics prepares struct of metrics data ready to be sent to server
-func (p *poller) AcquireMetrics() (s *Metrics) {
+func (p *poller) AcquireMetrics() (s Metrics) {
 	// (?)
 	// Func receiver by value was used so p.stat structure will be safely copied
 	// before usage. (Even though struct itself is pretty big, so might be worth
@@ -84,7 +84,7 @@ func (p *poller) AcquireMetrics() (s *Metrics) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
-	s = new(Metrics)
+	// s = new(Metrics)
 	s.Counters = map[string]model.Counter{
 		"PollCount": p.pollCount, // additional custom counter value
 	}
