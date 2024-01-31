@@ -41,6 +41,8 @@ func ExampleHandlers_UpdateBatch() {
 		if err != nil {
 			fmt.Printf("Unexpected code: %s, error reading response body: %v\n", res.Status, err)
 		}
+		// XXX: httptest.NewRecorder() already returns NopCloser Body
+		res.Body.Close() // workaround statictest issue
 		fmt.Printf("Unexpected code: %s, body: %s\n", res.Status, body)
 	}
 
@@ -88,6 +90,8 @@ func ExampleHandlers_GetMetricByJSON() {
 		fmt.Printf("Status code: %s, error reading response body: %v\n", res.Status, err)
 		return
 	}
+	// XXX: httptest.NewRecorder() already returns NopCloser Body
+	res.Body.Close() // workaround statictest issue
 
 	if w.Code != http.StatusOK {
 		fmt.Printf("Unexpected code: %s, body: %s\n", res.Status, body)
