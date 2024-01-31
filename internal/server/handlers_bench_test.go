@@ -146,12 +146,22 @@ func BenchmarkHandlers(b *testing.B) {
 
 				b.StopTimer()
 				res = w.Result()
+				body, err := io.ReadAll(res.Body)
+				if err != nil {
+					b.Errorf("Response body wasn't read, code %s, err: %v", res.Status, err)
+				}
+				// XXX: statictest - "response body must be closed"
+				// statictest ругается на незакрытое тело, но зачем его
+				// закрывать, если httptest.NewRecorder().Result() возвращает
+				// NopCloser Body?? Пришлось городить какую-то грязь.
+				// Что ли прямо в цикле бенча ставить defer res.Body.Close()?
+				res.Body.Close()
 
 				if tc.StatusCode(w.Code) {
-					body, err := io.ReadAll(res.Body)
-					if err != nil {
-						b.Errorf("Response body wasn't closed, code %s, err: %v", res.Status, err)
-					}
+					// body, err := io.ReadAll(res.Body)
+					// if err != nil {
+					// 	b.Errorf("Response body wasn't closed, read %s, err: %v", res.Status, err)
+					// }
 
 					b.Errorf("Unexpected response code: %s, body: %s", res.Status, body)
 				}
