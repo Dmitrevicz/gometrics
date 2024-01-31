@@ -160,7 +160,7 @@ func BenchmarkHandlers(b *testing.B) {
 				if tc.StatusCode(w.Code) {
 					// body, err := io.ReadAll(res.Body)
 					// if err != nil {
-					// 	b.Errorf("Response body wasn't closed, read %s, err: %v", res.Status, err)
+					// 	b.Errorf("Response body wasn't read, code %s, err: %v", res.Status, err)
 					// }
 
 					b.Errorf("Unexpected response code: %s, body: %s", res.Status, body)
