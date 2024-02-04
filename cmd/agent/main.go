@@ -1,3 +1,6 @@
+// Package main represents entry point for the agent service.
+//
+// Agent service periodically gathers runtime metrics and sends them to server.
 package main
 
 import (
@@ -34,6 +37,7 @@ func main() {
 	waitExit()
 }
 
+// waitExit stops the application from exiting instantly.
 func waitExit() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
@@ -41,6 +45,7 @@ func waitExit() {
 	log.Printf("Agent was stopped with signal: %v\n", s)
 }
 
+// parseFlags parses config from flags.
 func parseFlags(cfg *config.Config) {
 	// flag.StringVar(&urlServer, "a", "http://localhost:8080", "api endpoint address")
 	flag.StringVar(&cfg.Key, "k", cfg.Key, "hash key")
@@ -69,6 +74,8 @@ func parseFlags(cfg *config.Config) {
 	flag.Parse()
 }
 
+// checkEnvs parses environment variables to populate Config.
+// Overwrites cfg fields when appropriate env variables exist.
 func checkEnvs(cfg *config.Config) {
 	var err error
 

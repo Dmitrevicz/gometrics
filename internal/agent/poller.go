@@ -11,7 +11,7 @@ import (
 	"github.com/Dmitrevicz/gometrics/internal/model"
 )
 
-// poller updates metrics data every pollInterval seconds
+// poller updates metrics data every pollInterval seconds.
 type poller struct {
 	pollInterval int
 
@@ -74,7 +74,7 @@ func (p *poller) PollCount() (pc model.Counter) {
 	return
 }
 
-// AcquireMetrics prepares struct of metrics data ready to be sent to server
+// AcquireMetrics prepares struct of metrics data ready to be sent to server.
 func (p *poller) AcquireMetrics() (s Metrics) {
 	// (?)
 	// Func receiver by value was used so p.stat structure will be safely copied

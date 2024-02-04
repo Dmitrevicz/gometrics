@@ -150,7 +150,7 @@ func (s *sender) prepareMetricsBatch(metrics Metrics) (batch []model.Metrics) {
 	return batch
 }
 
-// SendBatched
+// SendBatched sends metrics to server in batch.
 //
 // > Научите агент работать с использованием нового API (отправлять метрики батчами).
 func (s *sender) SendBatched(metrics Metrics) {
@@ -175,10 +175,10 @@ func (s *sender) SendBatched(metrics Metrics) {
 	log.Printf("Metrics have been sent (%d in %v)\n", len(metrics.Counters)+len(metrics.Gauges), time.Since(ts))
 }
 
-// DefaultHTTPClientTimeoutSeconds - custom default http client timeout in seconds
+// DefaultHTTPClientTimeoutSeconds - custom default http client timeout in seconds.
 const DefaultHTTPClientTimeoutSeconds = 10
 
-// NewClientDefault returns *http.Client with DefaultHTTPClientTimeoutSeconds timeout set
+// NewClientDefault returns *http.Client with DefaultHTTPClientTimeoutSeconds timeout set.
 func NewClientDefault() *http.Client {
 	return &http.Client{
 		Timeout: time.Second * DefaultHTTPClientTimeoutSeconds,
@@ -289,6 +289,7 @@ func (s *sender) sendMetrics(name string, value any) error {
 	return nil
 }
 
+// compress uses gzip compression.
 func (s *sender) compress(b []byte) (*bytes.Buffer, error) {
 	buf := bytes.NewBuffer(nil)
 
@@ -306,6 +307,8 @@ func (s *sender) compress(b []byte) (*bytes.Buffer, error) {
 	return buf, nil
 }
 
+// sendBatched sends metrics batch to server.
+//
 // > Научите агент работать с использованием нового API (отправлять метрики батчами).
 func (s *sender) sendBatched(batch []model.Metrics) error {
 	s.Semaphore.Acquire()

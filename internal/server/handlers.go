@@ -15,11 +15,13 @@ import (
 	"go.uber.org/zap"
 )
 
+// Handlers implement handlers for http server.
 type Handlers struct {
 	storage storage.Storage
 	dumper  *Dumper
 }
 
+// NewHandlers creates new Handlers.
 func NewHandlers(storage storage.Storage, dumper *Dumper) *Handlers {
 	return &Handlers{
 		storage: storage,
@@ -27,6 +29,7 @@ func NewHandlers(storage storage.Storage, dumper *Dumper) *Handlers {
 	}
 }
 
+// PingStorage pings storage (checks if everything is OK).
 func (h *Handlers) PingStorage(c *gin.Context) {
 	if err := h.storage.Ping(c.Request.Context()); err != nil {
 		logger.Log.Error("database ping failed", zap.Error(err))
@@ -37,7 +40,7 @@ func (h *Handlers) PingStorage(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-// Update
+// Update is a handler to update single metric data.
 //
 // > Сервер должен принимать данные в формате:
 // http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
@@ -76,6 +79,7 @@ func (h *Handlers) Update(c *gin.Context) {
 	}
 }
 
+// updateGauge updates Gauge metric data.
 func (h *Handlers) updateGauge(c *gin.Context, name, value string) {
 	var gauge model.Gauge
 	gauge, err := gauge.FromString(value)
@@ -100,6 +104,7 @@ func (h *Handlers) updateGauge(c *gin.Context, name, value string) {
 	c.Status(http.StatusOK)
 }
 
+// updateCounter updates Counter metric data.
 func (h *Handlers) updateCounter(c *gin.Context, name, value string) {
 	var counter model.Counter
 	counter, err := counter.FromString(value)
@@ -129,7 +134,7 @@ func (h *Handlers) updateCounter(c *gin.Context, name, value string) {
 	c.Status(http.StatusOK)
 }
 
-// UpdateMetricByJSON
+// UpdateMetricByJSON is a handler to update metrics data using json request body.
 //
 // > Для передачи метрик на сервер используйте Content-Type: application/json.
 // В теле запроса должен быть описанный выше JSON. Передавать метрики нужно через
@@ -235,6 +240,7 @@ func (h *Handlers) updateCounterFromMetrics(c *gin.Context, m model.Metrics) {
 	c.JSON(http.StatusOK, m)
 }
 
+// prepareBatchedMetrics prepares a batch of metrics.
 func prepareBatchedMetrics(metrics []model.Metrics) (gs []model.MetricGauge, cs []model.MetricCounter, err error) {
 	if len(metrics) == 0 {
 		return
@@ -282,7 +288,8 @@ func prepareBatchedMetrics(metrics []model.Metrics) (gs []model.MetricGauge, cs 
 	return
 }
 
-// UpdateBatch
+// UpdateBatch is a handler to update metrics in batch (several at a time).
+// A slice of metrics structs is expected in request body.
 //
 // > Добавьте новый хендлер POST /updates/, принимающий в теле запроса
 // множество метрик в формате: []Metrics (списка метрик).
@@ -322,7 +329,7 @@ func (h *Handlers) UpdateBatch(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-// GetMetricByName returns metric value by its name
+// GetMetricByName is a handler that returns metric value by its name.
 //
 // > Доработайте сервер так, чтобы в ответ на запрос
 // GET http://<АДРЕС_СЕРВЕРА>/value/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>
@@ -367,7 +374,8 @@ func (h *Handlers) GetMetricByName(c *gin.Context) {
 	c.String(http.StatusOK, "%v", value)
 }
 
-// GetMetricByJSON returns metric value by name and type provided in json body.
+// GetMetricByJSON is a handler that returns metric value by name and type
+// provided in json body.
 //
 // > Для получения метрик с сервера используйте Content-Type: application/json.
 // В теле запроса должен быть описанный выше JSON с заполненными полями ID и
@@ -461,6 +469,8 @@ func (h *Handlers) GetAllMetrics(c *gin.Context) {
 	_, _ = c.Writer.Write(resp)
 }
 
+// pageTmpl is an html template to be rendered on Index page.
+//
 // TODO: might move to file
 var pageTmpl = template.Must(template.New("index").Parse(`<!DOCTYPE html>
 <html lang="en">
@@ -494,6 +504,7 @@ type indexPageData struct {
 	Counters map[string]model.Counter
 }
 
+// PageIndex is a handler to show html page with a list of all gathered metrics.
 func (h *Handlers) PageIndex(c *gin.Context) {
 	var (
 		pData indexPageData

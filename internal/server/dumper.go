@@ -16,6 +16,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// Dumper is a service to periodically dump gathered metrics.
 type Dumper struct {
 	// quit    chan struct{}
 	storage storage.Storage
@@ -31,6 +32,7 @@ type Dumper struct {
 	// maybe add smth to be able to stop the ticker on Quit call
 }
 
+// NewDumper creates new Dumper.
 func NewDumper(storage storage.Storage, cfg *config.Config) *Dumper {
 	d := Dumper{
 		// quit:    make(chan struct{}),
@@ -117,12 +119,13 @@ type metricsDump struct {
 
 type dumpFunc func() error
 
-// noOpDump does nothing
+// noOpDump does nothing.
+// It is used when saving is disabled by config.
 func (d *Dumper) noOpDump() error {
 	return nil
 }
 
-// dump saves current metrics data into file
+// dump saves current metrics data into file.
 func (d *Dumper) dump() error {
 	ts := time.Now()
 	defer func() {
@@ -159,6 +162,7 @@ func (d *Dumper) dump() error {
 	return err
 }
 
+// restore restores previously dumped metrics data.
 func (d *Dumper) restore() error {
 	ts := time.Now()
 	defer func() {

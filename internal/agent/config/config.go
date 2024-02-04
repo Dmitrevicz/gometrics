@@ -1,5 +1,7 @@
+// Package config holds agent service setup parameters.
 package config
 
+// Config holds agent service setup parameters.
 type Config struct {
 	// Server address for metrics to be sent to
 	ServerURL string
@@ -23,7 +25,7 @@ type Config struct {
 	RateLimit int
 }
 
-// New creates config with default values set
+// New creates config with default values set.
 func New() *Config {
 	return &Config{
 		ServerURL:      "http://localhost:8080",
