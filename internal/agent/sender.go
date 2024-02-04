@@ -80,13 +80,13 @@ func (s *sender) Start() {
 	}
 }
 
-func (s *sender) Send(metrics *Metrics) {
+func (s *sender) Send(metrics Metrics) {
 	log.Println("Metrics report started")
 
-	if metrics == nil {
-		log.Println("Error sending metrics: got nil as *Metrics, skip")
-		return
-	}
+	// if metrics == nil {
+	// 	log.Println("Error sending metrics: got nil as *Metrics, skip")
+	// 	return
+	// }
 
 	ts := time.Now()
 	g := new(errgroup.Group)
@@ -124,7 +124,7 @@ func (s *sender) Send(metrics *Metrics) {
 	log.Printf("Metrics have been sent (%d in %v)\n", len(metrics.Counters)+len(metrics.Gauges), time.Since(ts))
 }
 
-func (s *sender) prepareMetricsBatch(metrics *Metrics) (batch []model.Metrics) {
+func (s *sender) prepareMetricsBatch(metrics Metrics) (batch []model.Metrics) {
 	batch = make([]model.Metrics, 0, len(metrics.Gauges)+len(metrics.Counters))
 
 	for name, val := range metrics.Gauges {
@@ -153,13 +153,13 @@ func (s *sender) prepareMetricsBatch(metrics *Metrics) (batch []model.Metrics) {
 // SendBatched
 //
 // > Научите агент работать с использованием нового API (отправлять метрики батчами).
-func (s *sender) SendBatched(metrics *Metrics) {
+func (s *sender) SendBatched(metrics Metrics) {
 	log.Println("Metrics report started (batched)")
 
-	if metrics == nil {
-		log.Println("Error sending metrics: got nil as *Metrics, skip")
-		return
-	}
+	// if metrics == nil {
+	// 	log.Println("Error sending metrics: got nil as *Metrics, skip")
+	// 	return
+	// }
 
 	ts := time.Now()
 

@@ -11,6 +11,7 @@ import (
 	"github.com/Dmitrevicz/gometrics/internal/model"
 )
 
+// poller updates metrics data every pollInterval seconds
 type poller struct {
 	pollInterval int
 
@@ -24,12 +25,15 @@ type poller struct {
 	mu sync.RWMutex
 }
 
+// NewPoller returns a poller that should be used to gather metrics data every
+// pollInterval seconds.
 func NewPoller(pollInterval int) *poller {
 	return &poller{
 		pollInterval: pollInterval,
 	}
 }
 
+// Start starts updating metrics data every pollInterval seconds.
 func (p *poller) Start() {
 	log.Println("Poller started")
 
@@ -46,7 +50,7 @@ func (p *poller) Start() {
 	}
 }
 
-// Poll updates metrics data every pollInterval seconds
+// Poll retrieves metrics data from runtime.
 func (p *poller) Poll() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -61,6 +65,7 @@ func (p *poller) Poll() {
 	p.LastPoll = time.Now()
 }
 
+// PollCount returns current counter value representing number of polls.
 func (p *poller) PollCount() (pc model.Counter) {
 	p.mu.RLock()
 	pc = p.pollCount
@@ -70,7 +75,7 @@ func (p *poller) PollCount() (pc model.Counter) {
 }
 
 // AcquireMetrics prepares struct of metrics data ready to be sent to server
-func (p *poller) AcquireMetrics() (s *Metrics) {
+func (p *poller) AcquireMetrics() (s Metrics) {
 	// (?)
 	// Func receiver by value was used so p.stat structure will be safely copied
 	// before usage. (Even though struct itself is pretty big, so might be worth
@@ -79,7 +84,7 @@ func (p *poller) AcquireMetrics() (s *Metrics) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
-	s = new(Metrics)
+	// s = new(Metrics)
 	s.Counters = map[string]model.Counter{
 		"PollCount": p.pollCount, // additional custom counter value
 	}
