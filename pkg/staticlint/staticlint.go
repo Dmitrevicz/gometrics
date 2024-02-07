@@ -12,8 +12,10 @@
 package staticlint
 
 import (
+	"github.com/Abirdcfly/dupword"
 	"github.com/Dmitrevicz/gometrics/pkg/staticlint/noosexit"
 	"github.com/Dmitrevicz/gometrics/pkg/staticlint/staticchecks"
+	"github.com/gordonklaus/ineffassign/pkg/ineffassign"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/multichecker"
 	"golang.org/x/tools/go/analysis/passes/defers"
@@ -23,6 +25,7 @@ import (
 	"golang.org/x/tools/go/analysis/passes/tests"
 	"golang.org/x/tools/go/analysis/passes/timeformat"
 	"golang.org/x/tools/go/analysis/passes/unmarshal"
+	"honnef.co/go/tools/unused"
 )
 
 // Mount builds custom multichecker.
@@ -40,8 +43,11 @@ func Mount() {
 		timeformat.Analyzer,
 		unmarshal.Analyzer,
 
-		// 3rd-party analyzers
-		// ...
+		// other 3rd-party analyzers
+		// https://golangci-lint.run/usage/linters/
+		dupword.NewAnalyzer(),
+		ineffassign.Analyzer,
+		unused.Analyzer.Analyzer,
 	}
 
 	// staticcheck.io analyzers
@@ -49,10 +55,6 @@ func Mount() {
 	analyzers = append(analyzers, staticchecks.Simple()...)
 	analyzers = append(analyzers, staticchecks.Stylecheck()...)
 	analyzers = append(analyzers, staticchecks.Quickfix("QF1001")...)
-
-	// 3rd-party analyzers
-	// TODO:
-	// ...
 
 	multichecker.Main(analyzers...)
 }
