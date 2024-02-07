@@ -192,7 +192,7 @@ func (d *Dumper) restore() error {
 	}
 
 	var metrics metricsDump
-	if err := json.Unmarshal(data, &metrics); err != nil {
+	if err = json.Unmarshal(data, &metrics); err != nil {
 		return fmt.Errorf("failed json Unmarshal: %w", err)
 	}
 

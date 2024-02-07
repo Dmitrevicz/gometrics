@@ -78,6 +78,8 @@ const querySetGauge = `
 	DO UPDATE SET value=$2;
 `
 
+// Set updates the gauge by its name or creates if doesn't exist.
+//
 // XXX: Инкремент #13. Использую `INSERT...ON CONFLICT DO UPDATE`, поэтому нет смысла
 // проверять на pgerrcode.UniqueViolation.
 func (r *GaugesRepo) Set(name string, value model.Gauge) error {

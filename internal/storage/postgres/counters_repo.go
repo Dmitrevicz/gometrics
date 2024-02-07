@@ -78,6 +78,8 @@ const querySetCounter = `
 	DO UPDATE SET value = counters.value + $2;
 `
 
+// Set updates the counter by its name or creates if doesn't exist.
+//
 // XXX: Инкремент #13. Использую `INSERT...ON CONFLICT DO UPDATE`, поэтому нет смысла
 // проверять на pgerrcode.UniqueViolation.
 func (r *CountersRepo) Set(name string, value model.Counter) error {
