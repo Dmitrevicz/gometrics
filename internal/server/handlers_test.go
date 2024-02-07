@@ -11,6 +11,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestHandlers_PingStorage(t *testing.T) {
+	path := "/ping"
+
+	server := New(config.NewTesting())
+
+	r := httptest.NewRequest(http.MethodGet, path, nil)
+	w := httptest.NewRecorder()
+
+	server.ServeHTTP(w, r)
+
+	assert.Equalf(t, http.StatusOK, w.Code, "Код ответа не совпадает с ожидаемым. Method: %s, URL: %s", r.Method, path)
+}
+
 func TestHandlers_UpdateGauge(t *testing.T) {
 	path := "/update"
 

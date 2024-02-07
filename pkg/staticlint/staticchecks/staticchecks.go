@@ -136,12 +136,14 @@ func newSkipper(exclude ...string) (s skipper) {
 	return
 }
 
+// Check checks if s key is in exclusion set.
 func (r skipper) Check(s string) bool {
 	_, ok := r.exclude[s]
 
 	return ok
 }
 
+// Size returns number of keys that should be excluded (skipped).
 func (r skipper) Size() int {
 	return len(r.exclude)
 }
