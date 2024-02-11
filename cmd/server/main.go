@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -22,7 +23,27 @@ import (
 	"go.uber.org/zap"
 )
 
+// build info
+var (
+	buildVersion = "N/A"
+	buildDate    = "N/A"
+	buildCommit  = "N/A"
+)
+
+// printVersion prints build info to std.
+// Build info might be provided by linker flags while building, e.g.:
+//
+//	go build -ldflags "-X main.buildVersion=v1.0.1 \
+//	-X 'main.buildDate=$(date +'%Y/%m/%d %H:%M:%S')'" main.go
+func printVersion() {
+	fmt.Printf("Build version: %s\nBuild date: %s\nBuild commit: %s\n",
+		buildVersion, buildDate, buildCommit,
+	)
+}
+
 func main() {
+	printVersion()
+
 	cfg := config.New()
 	if err := parseFlags(cfg); err != nil {
 		log.Fatalln("failed parsing flags:", err)
