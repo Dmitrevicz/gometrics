@@ -112,6 +112,7 @@ func parseFlags(cfg *config.Config) error {
 	flag.StringVar(&cfg.FileStoragePath, "f", cfg.FileStoragePath, "file path for metrics data to be dumped in")
 	flag.StringVar(&cfg.DatabaseDSN, "d", cfg.DatabaseDSN, "data source name to connect to database")
 	flag.StringVar(&cfg.Key, "k", cfg.Key, "hash key")
+	flag.StringVar(&cfg.CryptoKey, "crypto-key", cfg.CryptoKey, "path to file with public key to be used in messages encryption")
 	flag.IntVar(&cfg.StoreInterval, "i", cfg.StoreInterval, "interval in seconds for current metrics data to be dumped into file")
 	flag.BoolVar(&cfg.Restore, "r", cfg.Restore, "shows if data restore from file should be made")
 
@@ -136,6 +137,10 @@ func parseFlags(cfg *config.Config) error {
 
 	if e, ok := os.LookupEnv("KEY"); ok {
 		cfg.Key = e
+	}
+
+	if e, ok := os.LookupEnv("CRYPTO_KEY"); ok {
+		cfg.CryptoKey = e
 	}
 
 	if e, ok := os.LookupEnv("STORE_INTERVAL"); ok {
