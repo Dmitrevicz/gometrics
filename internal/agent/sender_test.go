@@ -26,7 +26,9 @@ func TestSender(t *testing.T) {
 	}
 	poller := NewPoller(cfgAgent.PollInterval)
 	gopsutilPoller := NewGopsutilPoller(cfgAgent.PollInterval)
-	sender := NewSender(cfgAgent, poller, gopsutilPoller)
+
+	sender, err := NewSender(cfgAgent, poller, gopsutilPoller)
+	require.NoError(t, err)
 
 	gaugeValue := model.Gauge(42.420)
 	counterValue := model.Counter(42)

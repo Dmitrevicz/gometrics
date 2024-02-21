@@ -2,7 +2,7 @@
 //
 // Intention of the package is to be used in ecnrypted communication between
 // Agent and Server modules. Messages from the Agent, before being sent, are
-// going to be encrypted (by private key) with Encryptor and then decrypted (by
+// going to be encrypted (by public key) with Encryptor and then decrypted (by
 // private key) with Decryptor on recipient side - the Server.
 //
 // A pair of keys must be generated on the Server's side:
@@ -11,6 +11,10 @@
 //
 // TODO: Signing (sign, then encrypt) should also be implemented in such form of
 // communication.
+//
+// Alternative encryption packages:
+//   - https://github.com/golang-module/dongle
+//   - https://github.com/avelino/awesome-go#security
 package encryptor
 
 import (
@@ -84,14 +88,70 @@ func NewDecryptor(private string) (*Decryptor, error) {
 
 // Encrypt encrypts message.
 func (e *Encryptor) Encrypt(msg []byte) (data []byte, err error) {
-	data, err = rsa.EncryptOAEP(sha256.New(), rand.Reader, e.publicKey, msg, nil)
-	return
+	// Another way to implement batching (splitting in chunks)
+	// but that approach allocates [][]chunk slice:
+	// https://go.dev/wiki/SliceTricks#batching-with-minimal-allocation
+
+	// encryption/decryption is implemented in chunks to avoid
+	// "crypto/rsa: message too long for RSA key size" error
+
+	hash := sha256.New()
+
+	// chunk step
+	step := e.publicKey.Size() - 2*hash.Size() - 2
+
+	// encrypted part of data
+	var chunk []byte
+
+	for i, end := 0, 0; i < len(msg); {
+		end = i + step
+		if end > len(msg) {
+			end = len(msg)
+		}
+
+		chunk, err = rsa.EncryptOAEP(hash, rand.Reader, e.publicKey, msg[i:end], nil)
+		if err != nil {
+			return nil, err
+		}
+
+		data = append(data, chunk...)
+		i = end
+	}
+
+	return data, nil
 }
 
 // Decrypt decrypts ciphertext data.
 func (e *Decryptor) Decrypt(data []byte) (msg []byte, err error) {
-	msg, err = rsa.DecryptOAEP(sha256.New(), rand.Reader, e.privateKey, data, nil)
-	return
+	// Another way to implement batching (splitting in chunks)
+	// but that approach allocates [][]chunk slice:
+	// https://go.dev/wiki/SliceTricks#batching-with-minimal-allocation
+
+	// encryption/decryption is implemented in chunks to avoid
+	// "crypto/rsa: message too long for RSA key size" error
+
+	hash := sha256.New()
+
+	// chunk step
+	step := e.privateKey.Size()
+
+	// decrypted part of data
+	var chunk []byte
+
+	for i := 0; i < len(data); {
+		end := i + step
+		if end > len(data) {
+			end = len(data)
+		}
+		chunk, err = rsa.DecryptOAEP(hash, rand.Reader, e.privateKey, data[i:end], nil)
+		if err != nil {
+			return nil, err
+		}
+		msg = append(msg, chunk...)
+		i = end
+	}
+
+	return msg, nil
 }
 
 // parsePublicKey parses public key encoded in PEM form.

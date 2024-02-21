@@ -2,6 +2,7 @@ package encryptor
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -13,6 +14,8 @@ func TestEncryptor(t *testing.T) {
 	pubPKCS1, priPKCS1 := prepareTestEncryptorKeys(t, "PKCS1")
 	pubPKCS8, priPKCS8 := prepareTestEncryptorKeys(t, "PKCS8")
 
+	msg := "Hello, World! Привет!"
+
 	type args struct {
 		private string
 		public  string
@@ -20,20 +23,40 @@ func TestEncryptor(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
+		msg  string
 	}{
 		{
 			name: "PKCS1",
 			args: args{private: priPKCS1, public: pubPKCS1},
+			msg:  msg,
 		},
 		{
 			name: "PKCS8",
 			args: args{private: priPKCS8, public: pubPKCS8},
+			msg:  msg,
+		},
+		// also test longer inputs that will require chunked encryption
+		{
+			name: "PKCS1-x100",
+			args: args{private: priPKCS1, public: pubPKCS1},
+			msg:  strings.Repeat(msg, 100),
+		},
+		{
+			name: "PKCS8-x100",
+			args: args{private: priPKCS8, public: pubPKCS8},
+			msg:  strings.Repeat(msg, 100),
+		},
+		{
+			name: "PKCS1-x500",
+			args: args{private: priPKCS1, public: pubPKCS1},
+			msg:  strings.Repeat(msg, 500),
+		},
+		{
+			name: "PKCS8-x500",
+			args: args{private: priPKCS8, public: pubPKCS8},
+			msg:  strings.Repeat(msg, 500),
 		},
 	}
-
-	// message to be sent
-	msg := "Hello, World! We Gucci!"
-	data := []byte(msg)
 
 	// encrypted message
 	var cipher []byte
@@ -47,17 +70,17 @@ func TestEncryptor(t *testing.T) {
 
 			t.Run("Encrypt", func(t *testing.T) {
 				var err error
-				cipher, err = encryptor.Encrypt(data)
+				cipher, err = encryptor.Encrypt([]byte(tc.msg))
 				require.NoError(t, err)
 				require.NotEmpty(t, cipher, "Encryption attempt returned no data")
-				require.NotContains(t, string(cipher), msg, "Encryptor didn't encrypt message properly")
+				require.NotContains(t, string(cipher), tc.msg, "Encryptor didn't encrypt message properly")
 			})
 
 			t.Run("Decrypt", func(t *testing.T) {
 				plain, err := decryptor.Decrypt(cipher)
 				require.NoError(t, err)
 				require.NotEmpty(t, plain, "Decryption attempt returned no data")
-				require.Equal(t, msg, string(plain))
+				require.Equal(t, tc.msg, string(plain))
 			})
 		})
 	}

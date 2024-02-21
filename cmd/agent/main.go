@@ -51,7 +51,11 @@ func main() {
 
 	logger.Log.Sugar().Infof("Agent config: %+v", cfg)
 
-	agent := agent.New(cfg)
+	agent, err := agent.New(cfg)
+	if err != nil {
+		logger.Log.Sugar().Fatalln("failed initializing agent:", err)
+	}
+
 	agent.Start()
 
 	waitExit()
