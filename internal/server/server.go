@@ -14,6 +14,7 @@ import (
 	"github.com/Dmitrevicz/gometrics/internal/storage"
 	"github.com/Dmitrevicz/gometrics/internal/storage/memstorage"
 	"github.com/Dmitrevicz/gometrics/internal/storage/postgres"
+	"github.com/Dmitrevicz/gometrics/pkg/encryptor"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
@@ -43,6 +44,14 @@ func New(cfg *config.Config) *server {
 	r.Use(gin.Recovery())           // only panic recover for now
 	r.Use(RequestLogger())          // custom logger middleware from the lesson
 	// r.Use(gin.Logger()) // gin.Logger can be used, but custom RequestLogger is preferred now in learning purposes
+
+	// Data sent from agent is compressed first and then encrypted
+	// so order of actions to revert this matters.
+	// Server have to decrypt first and then decompress.
+	if cfg.CryptoKey != "" {
+		decryptor := s.configureDecryptor(cfg.CryptoKey)
+		r.Use(DecryptRSA(decryptor))
+	}
 
 	r.Use(Gzip())
 
@@ -164,4 +173,13 @@ func createTables(db *sql.DB) (err error) {
 	}
 
 	return tx.Commit()
+}
+
+func (s *server) configureDecryptor(privateKeyPath string) *encryptor.Decryptor {
+	decryptor, err := encryptor.NewDecryptor(privateKeyPath)
+	if err != nil {
+		logger.Log.Fatal("failed to initialize decryptor", zap.Error(err))
+	}
+
+	return decryptor
 }

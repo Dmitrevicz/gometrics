@@ -89,11 +89,15 @@ func NewDecryptor(private string) (*Decryptor, error) {
 // Encrypt encrypts message.
 func (e *Encryptor) Encrypt(msg []byte) (data []byte, err error) {
 	// Another way to implement batching (splitting in chunks)
-	// but that approach allocates [][]chunk slice:
+	// but that approach allocates [][]byte slice:
 	// https://go.dev/wiki/SliceTricks#batching-with-minimal-allocation
 
 	// encryption/decryption is implemented in chunks to avoid
 	// "crypto/rsa: message too long for RSA key size" error
+
+	if len(msg) == 0 {
+		return data, nil
+	}
 
 	hash := sha256.New()
 
@@ -129,6 +133,10 @@ func (e *Decryptor) Decrypt(data []byte) (msg []byte, err error) {
 
 	// encryption/decryption is implemented in chunks to avoid
 	// "crypto/rsa: message too long for RSA key size" error
+
+	if len(data) == 0 {
+		return msg, nil
+	}
 
 	hash := sha256.New()
 
