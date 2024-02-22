@@ -250,6 +250,8 @@ func HashCheck(key string) gin.HandlerFunc {
 	}
 }
 
+const EncryptionHeader = "Content-Encryption"
+
 // DecryptRSA - middleware to decrypt request body encrypted with RSA.
 func DecryptRSA(decryptor *encryptor.Decryptor) gin.HandlerFunc {
 	if decryptor == nil {
@@ -259,8 +261,8 @@ func DecryptRSA(decryptor *encryptor.Decryptor) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		// check if data sent by agent was encrypted
-		enc := c.Request.Header.Get("Content-Encryption")
-		fmt.Printf("Decryption middleware fired, Content-Encryption: '%s'\n", enc)
+		enc := c.Request.Header.Get(EncryptionHeader)
+		fmt.Printf("Decryption middleware fired, header - %s: '%s'\n", EncryptionHeader, enc)
 		if enc != "1" {
 			return
 		}

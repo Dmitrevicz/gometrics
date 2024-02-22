@@ -128,7 +128,7 @@ func TestDecryptRSA(t *testing.T) {
 	require.NoError(t, err, "failed to encrypt request payload")
 
 	r := httptest.NewRequest(http.MethodPost, reqURL, bytes.NewBuffer(encryptedBody))
-	r.Header.Set("Content-Encryption", "1")
+	r.Header.Set(EncryptionHeader, "1")
 
 	w := httptest.NewRecorder()
 

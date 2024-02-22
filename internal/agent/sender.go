@@ -376,7 +376,7 @@ func (s *sender) sendBatched(batch []model.Metrics) error {
 
 	if s.encryptor != nil {
 		// show via header that content is encrypted
-		req.Header.Set("Content-Encrypted", "1")
+		req.Header.Set(server.EncryptionHeader, "1")
 	}
 
 	if s.key != "" {
@@ -403,7 +403,7 @@ func (s *sender) sendBatched(batch []model.Metrics) error {
 	}
 
 	if resp.StatusCode != 200 {
-		err = fmt.Errorf("unexpected response status code: %s, body: %s", resp.Status, string(body))
+		err = fmt.Errorf("unexpected response status code: '%s', body: '%s'", resp.Status, string(body))
 		if resp.StatusCode >= 500 && resp.StatusCode < 600 {
 			return model.NewRetriableError(err)
 		}
