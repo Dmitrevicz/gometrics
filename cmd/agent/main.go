@@ -4,11 +4,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/Dmitrevicz/gometrics/internal/agent"
 	"github.com/Dmitrevicz/gometrics/internal/agent/config"
@@ -53,13 +55,24 @@ func main() {
 
 	agent.Start()
 
-	waitExit()
+	waitExit(agent)
 }
 
 // waitExit stops the application from exiting instantly.
-func waitExit() {
+// Implements graceful shutdown.
+func waitExit(agent *agent.Agent) {
 	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 	s := <-quit
+
+	log.Printf("Agent caught os signal (%v). Starting shutdown...\n", s)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	if err := agent.Shutdown(ctx); err != nil {
+		log.Fatalln("Failed to Shutdown the Agent:", err)
+	}
+
 	log.Printf("Agent was stopped with signal: %v\n", s)
 }

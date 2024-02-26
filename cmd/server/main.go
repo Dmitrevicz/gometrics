@@ -16,6 +16,7 @@ import (
 	"github.com/Dmitrevicz/gometrics/internal/logger"
 	"github.com/Dmitrevicz/gometrics/internal/server"
 	"github.com/Dmitrevicz/gometrics/internal/server/config"
+	"github.com/Dmitrevicz/gometrics/internal/storage"
 	"go.uber.org/zap"
 )
 
@@ -73,28 +74,36 @@ func main() {
 		}
 	}()
 
-	waitShutdown(s, srv.Dumper)
+	waitShutdown(s, srv.Dumper, srv.Storage)
 }
 
 // waitShutdown implements graceful shutdown.
-func waitShutdown(s *http.Server, dumper *server.Dumper) {
+func waitShutdown(s *http.Server, dumper *server.Dumper, storage storage.Storage) {
 	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 	sig := <-quit
 
 	logger.Log.Info("Server caught os signal. Starting shutdown...\n",
 		zap.String("signal", sig.String()),
 	)
 
+	// TODO: might improve dumper Quit/Close behaviour
 	dumper.Quit()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := s.Shutdown(ctx); err != nil {
-		logger.Log.Fatal("Shutdown got error",
-			zap.Error(err),
-		)
+	var err error
+	if err = s.Shutdown(ctx); err != nil {
+		logger.Log.Fatal("Shutdown got error", zap.Error(err))
+	}
+
+	// XXX: can I use same context from before or should create new like this?
+	ctxStorage, cancelCtxStorage := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelCtxStorage()
+
+	if err = storage.Close(ctxStorage); err != nil {
+		logger.Log.Fatal("Failed to Close the Storage", zap.Error(err))
 	}
 
 	logger.Log.Info("Server was stopped")

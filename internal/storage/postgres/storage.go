@@ -24,6 +24,22 @@ func (s *Storage) Ping(ctx context.Context) error {
 	return s.db.PingContext(ctx)
 }
 
+func (s *Storage) Close(ctx context.Context) (err error) {
+	wait := make(chan error, 1)
+
+	go func() {
+		wait <- s.db.Close()
+		close(wait)
+	}()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case err = <-wait:
+		return err
+	}
+}
+
 func (s *Storage) Gauges() storage.GaugesRepository {
 	if s.gauges == nil {
 		s.gauges = NewGaugesRepo(s)

@@ -12,6 +12,7 @@ type Storage interface {
 	Gauges() GaugesRepository
 	Counters() CountersRepository
 	Ping(ctx context.Context) error
+	Close(ctx context.Context) error
 }
 
 type GaugesRepository interface {

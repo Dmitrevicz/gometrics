@@ -6,6 +6,8 @@
 package agent
 
 import (
+	"context"
+	"errors"
 	"log"
 
 	"github.com/Dmitrevicz/gometrics/internal/agent/config"
@@ -65,4 +67,16 @@ func (a *Agent) Start() {
 	go a.poller.Start()
 	go a.gopsutilPoller.Start() // > "Добавьте ещё одну горутину, которая будет использовать пакет gopsutil"
 	go a.sender.Start()
+}
+
+// Shutdown implements graceful shutdown.
+//
+// TODO: Shutdown should stop poller/sender timers and send current data.
+func (a *Agent) Shutdown(ctx context.Context) error {
+	// a.poller.Stop()
+	// a.gopsutilPoller.Stop()
+	// a.sender.Stop()
+	// a.sender.Send()
+
+	return errors.New("not implemented")
 }
