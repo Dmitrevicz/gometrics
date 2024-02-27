@@ -86,8 +86,9 @@ func TestSender_sendBatchedEncrypted(t *testing.T) {
 	require.NoError(t, err, "failed to create sender instance")
 
 	var (
-		gaugeValue   float64 = 42.420
-		counterValue int64   = 42
+		// gaugeValue   float64 = 42.420 // I hate statictest
+		gaugeValue         = 42.420
+		counterValue int64 = 42
 	)
 
 	metricsBatch := []model.Metrics{
