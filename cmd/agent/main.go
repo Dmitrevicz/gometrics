@@ -67,12 +67,12 @@ func waitExit(agent *agent.Agent) {
 
 	log.Printf("Agent caught os signal (%v). Starting shutdown...\n", s)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := agent.Shutdown(ctx); err != nil {
-		log.Fatalln("Failed to Shutdown the Agent:", err)
+		log.Fatalln("Agent was stopped, but error occurred:", err)
 	}
 
-	log.Printf("Agent was stopped with signal: %v\n", s)
+	log.Println("Agent was stopped")
 }

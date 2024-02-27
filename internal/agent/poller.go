@@ -21,6 +21,9 @@ type poller struct {
 	RandomValue model.Gauge   // additional custom gauge value
 	LastPoll    time.Time
 
+	quit  chan struct{}
+	timer *time.Timer
+
 	// polled data must be protected because accessed from separate goroutines
 	mu sync.RWMutex
 }
@@ -30,6 +33,7 @@ type poller struct {
 func NewPoller(pollInterval int) *poller {
 	return &poller{
 		pollInterval: pollInterval,
+		quit:         make(chan struct{}),
 	}
 }
 
@@ -37,17 +41,42 @@ func NewPoller(pollInterval int) *poller {
 func (p *poller) Start() {
 	log.Println("Poller started")
 
+	ts := time.Now()
+
+	// poll at the very start and then repeat after every sleepDuration
+	p.Poll()
+	fmt.Println("poll fired:", p.LastPoll, time.Since(ts))
+
 	sleepDuration := time.Second * time.Duration(p.pollInterval)
-	var ts time.Time
+	p.timer = time.NewTimer(sleepDuration)
 
 	for {
-		ts = time.Now()
-		p.Poll()
-		fmt.Println("poll fired:", p.LastPoll, time.Since(ts))
+		select {
+		case ts = <-p.timer.C:
+			p.Poll()
+			fmt.Println("poll fired:", p.LastPoll, time.Since(ts))
 
-		// lesson of the 2nd increment asked to use time.Sleep
-		time.Sleep(sleepDuration)
+			// I don't calculate delta-time, because current behaviour
+			// is good enough right now.
+			p.timer.Reset(sleepDuration)
+		case <-p.quit:
+			// stop the timer
+			if !p.timer.Stop() {
+				// drain the chanel (might not be needed here, but leave it be
+				// as a kind of exercise)
+				<-p.timer.C
+			}
+
+			log.Println("Poller timer stopped")
+			return
+		}
 	}
+}
+
+// Stop stops poller's timer.
+func (p *poller) Stop() {
+	close(p.quit)
+	log.Println("Poller stopped")
 }
 
 // Poll retrieves metrics data from runtime.
