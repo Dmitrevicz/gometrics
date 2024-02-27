@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,10 +19,13 @@ import (
 
 // Dumper is a service to periodically dump gathered metrics.
 type Dumper struct {
-	// quit    chan struct{}
 	storage storage.Storage
 	cfg     *config.Config
 	mu      sync.Mutex
+
+	// quit is a channel to stop the timer
+	quit  chan struct{}
+	timer *time.Timer
 
 	// XXX: не нравится реализация (вызывать в каждом хендлере), но пока так...
 	// Dump is a func that is expected to be called from handlers...
@@ -35,7 +39,7 @@ type Dumper struct {
 // NewDumper creates new Dumper.
 func NewDumper(storage storage.Storage, cfg *config.Config) *Dumper {
 	d := Dumper{
-		// quit:    make(chan struct{}),
+		quit:    make(chan struct{}),
 		storage: storage,
 		cfg:     cfg,
 	}
@@ -71,22 +75,39 @@ func (d *Dumper) Start() error {
 // 	// }()
 // }
 
-func (d *Dumper) Quit() {
+// Quit stops the timer and dumps all current data.
+func (d *Dumper) Quit(ctx context.Context) (err error) {
 	logger.Log.Info("Stopping Dumper")
 
 	if d.cfg.FileStoragePath == "" {
 		logger.Log.Info("dump is disabled - empty file path")
-		return
+		return nil
 	}
 
-	err := d.dump()
-	if err != nil {
-		logger.Log.Error("dumper got error trying to create a dump", zap.Error(err))
+	d.stopTimer()
+
+	wait := make(chan error, 1)
+	go func() {
+		wait <- d.dump()
+		close(wait)
+	}()
+
+	select {
+	case <-ctx.Done():
+		err = ctx.Err()
+	case err = <-wait:
 	}
 
-	// close(d.quit)
+	return fmt.Errorf("dumper got error trying to create a dump: %v", err)
 }
 
+// stopTimer stops infinite timer which calls Dumper.dump().
+func (d *Dumper) stopTimer() {
+	close(d.quit)
+}
+
+// startTimer starts infinite timer that saves metrics into file.
+// The timer can be stopped by Dumper.stopTimer().
 func (d *Dumper) startTimer() {
 	sleepDuration := time.Second * time.Duration(d.cfg.StoreInterval)
 
@@ -100,14 +121,30 @@ func (d *Dumper) startTimer() {
 		return
 	}
 
+	d.timer = time.NewTimer(sleepDuration)
 	logger.Log.Info("dumper timer started", zap.Duration(d.cfg.FileStoragePath, sleepDuration))
 
-	for {
-		time.Sleep(sleepDuration)
+	var err error
 
-		err := d.dump()
-		if err != nil {
-			logger.Log.Error("dumper got error trying to create a dump", zap.Error(err))
+	for {
+		select {
+		case <-d.timer.C:
+			err = d.dump()
+			if err != nil {
+				logger.Log.Error("dumper got error trying to create a dump", zap.Error(err))
+			}
+
+			// I don't calculate delta-time, because believe current behaviour
+			// is good enough right now.
+			d.timer.Reset(sleepDuration)
+		case <-d.quit:
+			// stop the timer
+			if !d.timer.Stop() {
+				// drain the chanel (might not be needed here, but leave it be
+				// as a kind of exercise)
+				<-d.timer.C
+			}
+			return
 		}
 	}
 }
