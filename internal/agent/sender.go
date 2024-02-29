@@ -3,6 +3,7 @@ package agent
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -31,6 +32,9 @@ type sender struct {
 	gopsutilPoller *gopsutilPoller
 	client         *http.Client
 	encryptor      *encryptor.Encryptor
+
+	quit  chan struct{}
+	timer *time.Timer
 
 	// Задание 15-го инкремента реализовал через семафор
 	//
@@ -68,34 +72,77 @@ func NewSender(cfg *config.Config, poller *poller, gopsutilPoller *gopsutilPolle
 		client:         NewClientDefault(),
 		Semaphore:      NewSemaphore(cfg.RateLimit),
 		encryptor:      encrypt,
+		quit:           make(chan struct{}),
 	}, nil
 }
 
 func (s *sender) Start() {
 	log.Println("Sender started")
 
-	sleepDuration := time.Second * time.Duration(s.reportInterval)
 	var ts time.Time
+	sleepDuration := time.Second * time.Duration(s.reportInterval)
+	s.timer = time.NewTimer(sleepDuration)
 
 	for {
-		// lesson of the 2nd increment asked to use time.Sleep
-		time.Sleep(sleepDuration)
+		select {
+		case ts = <-s.timer.C:
+			metrics := s.poller.AcquireMetrics()
+			metrics.Merge(s.gopsutilPoller.AcquireMetrics())
 
-		ts = time.Now()
+			// iteration-12:
+			// > Научите агент работать с использованием нового API (отправлять метрики батчами).
+			if s.batch {
+				s.SendBatched(metrics)
+			} else {
+				s.Send(metrics)
+			}
 
+			fmt.Println("send fired:", time.Since(ts))
+
+			// I don't calculate delta-time, because current behaviour
+			// is good enough right now.
+			s.timer.Reset(sleepDuration)
+
+		case <-s.quit:
+			// stop the timer
+			if !s.timer.Stop() {
+				// drain the chanel (might not be needed here, but leave it be
+				// as a kind of exercise)
+				<-s.timer.C
+			}
+
+			log.Println("Sender timer stopped")
+			return
+		}
+	}
+}
+
+// Shutdown stops sender's ticker and sends current data to server.
+func (s *sender) Shutdown(ctx context.Context) error {
+	log.Println("Stopping Sender")
+
+	s.stop()
+
+	wait := make(chan error, 1)
+	go func() {
 		metrics := s.poller.AcquireMetrics()
 		metrics.Merge(s.gopsutilPoller.AcquireMetrics())
+		s.SendBatched(metrics)
+		close(wait)
+	}()
 
-		// iteration-12:
-		// > Научите агент работать с использованием нового API (отправлять метрики батчами).
-		if s.batch {
-			s.SendBatched(metrics)
-		} else {
-			s.Send(metrics)
-		}
-
-		fmt.Println("send fired:", time.Since(ts))
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("sender Shutdown failed: %v", ctx.Err())
+	case <-wait:
+		return nil
 	}
+}
+
+// stop stops sender's timer.
+func (s *sender) stop() {
+	close(s.quit)
+	log.Println("Sender stopped")
 }
 
 func (s *sender) Send(metrics Metrics) {

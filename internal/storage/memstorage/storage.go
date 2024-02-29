@@ -20,6 +20,10 @@ func (s *Storage) Ping(ctx context.Context) error {
 	return nil
 }
 
+func (s *Storage) Close(ctx context.Context) (err error) {
+	return nil
+}
+
 func (s *Storage) Gauges() storage.GaugesRepository {
 	if s.gauges == nil {
 		s.gauges = NewGaugesRepo()

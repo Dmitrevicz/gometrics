@@ -1,6 +1,13 @@
-.PHONY: build-agent build-server
+.PHONY: build-agent build-server test test-cover
 
 # .SILENT:
+
+test:
+	go test -v ./...
+
+test-cover:
+	go test ./... -coverprofile=profiles/cover.out > /dev/null; \
+	go tool cover -func profiles/cover.out | tail -n 1 | xargs
 
 build-agent:
 	cd ./cmd/agent && \

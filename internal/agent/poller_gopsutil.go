@@ -33,6 +33,8 @@ type gopsutilPoller struct {
 
 	lastPoll time.Time // for debugging
 
+	quit chan struct{}
+
 	// polled data must be protected because accessed from separate goroutines
 	mu sync.RWMutex
 }
@@ -40,6 +42,7 @@ type gopsutilPoller struct {
 func NewGopsutilPoller(pollInterval int) *gopsutilPoller {
 	return &gopsutilPoller{
 		pollInterval: pollInterval,
+		quit:         make(chan struct{}),
 	}
 }
 
@@ -53,6 +56,13 @@ func (p *gopsutilPoller) Start() {
 	)
 
 	for {
+		select {
+		case <-p.quit:
+			log.Println("Poller timer stopped (gopsutil)")
+			return
+		default:
+		}
+
 		ts = time.Now()
 		if err = p.Poll(); err != nil {
 			log.Println("Poll failed for gopsutil, err:", err)
@@ -61,6 +71,12 @@ func (p *gopsutilPoller) Start() {
 
 		time.Sleep(sleepDuration)
 	}
+}
+
+// Stop stops poller's timer.
+func (p *gopsutilPoller) Stop() {
+	close(p.quit)
+	log.Println("Poller stopped (gopsutil)")
 }
 
 // Poll updates metrics data every pollInterval seconds
