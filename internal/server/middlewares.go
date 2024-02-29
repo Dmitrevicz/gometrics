@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/Dmitrevicz/gometrics/internal/logger"
+	"github.com/Dmitrevicz/gometrics/pkg/encryptor"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -246,5 +247,44 @@ func HashCheck(key string) gin.HandlerFunc {
 		}
 
 		c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
+	}
+}
+
+const EncryptionHeader = "Content-Encryption"
+
+// DecryptRSA - middleware to decrypt request body encrypted with RSA.
+func DecryptRSA(decryptor *encryptor.Decryptor) gin.HandlerFunc {
+	if decryptor == nil {
+		logger.Log.DPanic("bad decryptor initialization - nil passed as *encryptor.Decryptor")
+		return func(c *gin.Context) {}
+	}
+
+	return func(c *gin.Context) {
+		// check if data sent by agent was encrypted
+		enc := c.Request.Header.Get(EncryptionHeader)
+		fmt.Printf("Decryption middleware fired, header - %s: '%s'\n", EncryptionHeader, enc)
+		if enc != "1" {
+			return
+		}
+
+		body, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			logger.Log.Error("Error reading body", zap.Error(err))
+			_ = c.AbortWithError(http.StatusBadRequest, errors.New("can't read body"))
+			return
+		}
+
+		plainBody, err := decryptor.Decrypt(body)
+		if err != nil {
+			logger.Log.Info("Content decryption failed", zap.Error(err))
+			_ = c.AbortWithError(http.StatusBadRequest, errors.New("content decryption failed"))
+		} else {
+			logger.Log.Info("Successful request decryption",
+				zap.String("method", c.Request.Method),
+				zap.String("req", c.Request.URL.Path),
+			)
+		}
+
+		c.Request.Body = io.NopCloser(bytes.NewBuffer(plainBody))
 	}
 }

@@ -15,14 +15,19 @@ type Config struct {
 	// Shows if metrics update request should be sent in single batch
 	Batch bool
 
+	// Флаг -l, переменная окружения RATE_LIMIT.
+	//   > количество одновременно исходящих запросов на сервер нужно ограничивать «сверху»
+	RateLimit int
+
 	// Флаг -k=<КЛЮЧ> и переменная окружения KEY=<КЛЮЧ>.
 	// При наличии ключа агент должен вычислять хеш и передавать
 	// в HTTP-заголовке запроса с именем HashSHA256.
 	Key string
 
-	// Флаг -l, переменная окружения RATE_LIMIT.
-	//   > количество одновременно исходящих запросов на сервер нужно ограничивать «сверху»
-	RateLimit int
+	// CryptoKey is a private key to be used in messages encryption. Contains
+	// path to a file with the key. Flag: -crypto-key, env: CRYPTO_KEY.
+	//  > Шифруйте сообщения от агента к серверу с помощью ключей.
+	CryptoKey string
 }
 
 // New creates config with default values set.

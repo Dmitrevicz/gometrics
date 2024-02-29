@@ -39,17 +39,23 @@ type Agent struct {
 }
 
 // New creates new agent service.
-func New(cfg *config.Config) *Agent {
+func New(cfg *config.Config) (*Agent, error) {
 	log.Printf("intervals (in seconds) - poll: %d, report: %d\n", cfg.PollInterval, cfg.ReportInterval)
 	log.Printf("url: \"%s\"\n", cfg.ServerURL)
 
 	poller := NewPoller(cfg.PollInterval)
 	gopsutilPoller := NewGopsutilPoller(cfg.PollInterval)
+
+	sender, err := NewSender(cfg, poller, gopsutilPoller)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Agent{
 		poller:         poller,
 		gopsutilPoller: gopsutilPoller,
-		sender:         NewSender(cfg, poller, gopsutilPoller),
-	}
+		sender:         sender,
+	}, nil
 }
 
 // Start initiates agent timers.

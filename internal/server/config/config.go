@@ -37,6 +37,11 @@ type Config struct {
 	//  - При наличии ключа на этапе формирования ответа сервер должен вычислять
 	//    хеш и передавать его в HTTP-заголовке ответа с именем HashSHA256.
 	Key string
+
+	// CryptoKey is a public key to be used in messages encryption. Contains
+	// path to a file with the key. Flag: -crypto-key, env: CRYPTO_KEY.
+	//  > Шифруйте сообщения от агента к серверу с помощью ключей.
+	CryptoKey string
 }
 
 // New creates config with default values set.

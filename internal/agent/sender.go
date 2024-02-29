@@ -18,6 +18,7 @@ import (
 	"github.com/Dmitrevicz/gometrics/internal/model"
 	"github.com/Dmitrevicz/gometrics/internal/retry"
 	"github.com/Dmitrevicz/gometrics/internal/server"
+	"github.com/Dmitrevicz/gometrics/pkg/encryptor"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -29,6 +30,7 @@ type sender struct {
 	poller         *poller
 	gopsutilPoller *gopsutilPoller
 	client         *http.Client
+	encryptor      *encryptor.Encryptor
 
 	// Задание 15-го инкремента реализовал через семафор
 	//
@@ -36,9 +38,24 @@ type sender struct {
 	Semaphore *Semaphore
 }
 
-func NewSender(cfg *config.Config, poller *poller, gopsutilPoller *gopsutilPoller) *sender {
+func NewSender(cfg *config.Config, poller *poller, gopsutilPoller *gopsutilPoller) (*sender, error) {
 	if cfg.RateLimit < 1 {
 		cfg.RateLimit = 1
+	}
+
+	var (
+		encrypt *encryptor.Encryptor
+		err     error
+	)
+
+	if cfg.CryptoKey != "" {
+		encrypt, err = encryptor.NewEncryptor(cfg.CryptoKey)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// logger.Log.Warn("Empty CRYPTO_KEY was provided - encryption will be disabled!")
+		log.Println("Empty CRYPTO_KEY was provided - encryption will be disabled!")
 	}
 
 	return &sender{
@@ -50,7 +67,8 @@ func NewSender(cfg *config.Config, poller *poller, gopsutilPoller *gopsutilPolle
 		gopsutilPoller: gopsutilPoller,
 		client:         NewClientDefault(),
 		Semaphore:      NewSemaphore(cfg.RateLimit),
-	}
+		encryptor:      encrypt,
+	}, nil
 }
 
 func (s *sender) Start() {
@@ -310,6 +328,8 @@ func (s *sender) compress(b []byte) (*bytes.Buffer, error) {
 // sendBatched sends metrics batch to server.
 //
 // > Научите агент работать с использованием нового API (отправлять метрики батчами).
+//
+// TODO: Maybe somehow remake encryption as middleware or smth...
 func (s *sender) sendBatched(batch []model.Metrics) error {
 	s.Semaphore.Acquire()
 	defer s.Semaphore.Release()
@@ -325,6 +345,25 @@ func (s *sender) sendBatched(batch []model.Metrics) error {
 		return fmt.Errorf("data compression failed: %w", err)
 	}
 
+	// XXX: What should go first - encryption or compression?
+	if s.encryptor != nil {
+		// TODO: Should also sign payload before encryption.
+		// I guess, HashSHA256 header acts as some sort of signature, for now.
+		// (hash was added in previous task increments)
+
+		// encrypt payload
+		ciphertext, err := s.encryptor.Encrypt(buf.Bytes())
+		if err != nil {
+			return fmt.Errorf("data encryption failed: %w", err)
+		}
+
+		// write encrypted data to the same bytes buffer
+		buf.Reset()
+		if _, err = buf.Write(ciphertext); err != nil {
+			return fmt.Errorf("error writing encrypted payload to the buffer: %w", err)
+		}
+	}
+
 	// prepare request
 	url := s.url + "/updates/"
 	req, err := http.NewRequest(http.MethodPost, url, buf)
@@ -334,6 +373,11 @@ func (s *sender) sendBatched(batch []model.Metrics) error {
 
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/json")
+
+	if s.encryptor != nil {
+		// show via header that content is encrypted
+		req.Header.Set(server.EncryptionHeader, "1")
+	}
 
 	if s.key != "" {
 		// create body hash
@@ -359,7 +403,7 @@ func (s *sender) sendBatched(batch []model.Metrics) error {
 	}
 
 	if resp.StatusCode != 200 {
-		err = fmt.Errorf("unexpected response status code: %s, body: %s", resp.Status, string(body))
+		err = fmt.Errorf("unexpected response status code: '%s', body: '%s'", resp.Status, string(body))
 		if resp.StatusCode >= 500 && resp.StatusCode < 600 {
 			return model.NewRetriableError(err)
 		}

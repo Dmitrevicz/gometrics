@@ -51,7 +51,11 @@ func main() {
 
 	logger.Log.Sugar().Infof("Agent config: %+v", cfg)
 
-	agent := agent.New(cfg)
+	agent, err := agent.New(cfg)
+	if err != nil {
+		logger.Log.Sugar().Fatalln("failed initializing agent:", err)
+	}
+
 	agent.Start()
 
 	waitExit()
@@ -73,6 +77,7 @@ func parseFlags(cfg *config.Config) {
 	flag.IntVar(&cfg.ReportInterval, "r", cfg.ReportInterval, "report interval in seconds")
 	flag.IntVar(&cfg.RateLimit, "l", cfg.RateLimit, "rate limit (number of max concurrent senders)")
 	flag.BoolVar(&cfg.Batch, "batch", cfg.Batch, "send metrics update request in single batch")
+	flag.StringVar(&cfg.CryptoKey, "crypto-key", cfg.CryptoKey, "path to file with private key to be used in messages encryption")
 
 	// have to implement a workaround to trick buggy autotests
 	flag.Func("a", fmt.Sprintf("api endpoint address (default %s)", cfg.ServerURL), func(s string) error {
@@ -112,6 +117,10 @@ func checkEnvs(cfg *config.Config) {
 
 	if e, ok := os.LookupEnv("KEY"); ok {
 		cfg.Key = e
+	}
+
+	if e, ok := os.LookupEnv("CRYPTO_KEY"); ok {
+		cfg.CryptoKey = e
 	}
 
 	if e, ok := os.LookupEnv("REPORT_INTERVAL"); ok {

@@ -29,13 +29,13 @@ git fetch template && git checkout template/main .github
 ## Testing
 
 ```Bash
-go test ./... -coverprofile=profiles/cover.prof
-go tool cover -func profiles/cover.prof
+go test ./... -coverprofile=profiles/cover.out
+go tool cover -func profiles/cover.out
 ```
 
 Or just print percentage only:
 ```Bash
-go test ./... -coverprofile=profiles/cover.prof > /dev/null; go tool cover -func profiles/cover.prof | tail -n 1 | xargs
+go test ./... -coverprofile=profiles/cover.out > /dev/null; go tool cover -func profiles/cover.out | tail -n 1 | xargs
 ```
 
 ## Benchmarking
