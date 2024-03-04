@@ -4,8 +4,12 @@ package config
 import (
 	"encoding/json"
 	"errors"
+	"net"
 	"os"
 	"strings"
+
+	"github.com/Dmitrevicz/gometrics/internal/logger"
+	"go.uber.org/zap"
 )
 
 // Config holds server service setup parameters.
@@ -52,6 +56,11 @@ type Config struct {
 	// path to a file with the key. Flag: -crypto-key, env: CRYPTO_KEY.
 	//  > Шифруйте сообщения от агента к серверу с помощью ключей.
 	CryptoKey string `json:"crypto_key"`
+
+	// TrustedSubnet is a subnet string (CIDR) for limitting unwanted IP range
+	// to access the server. When not empty, Server will check X-Real-IP header
+	// in Agent requests. Flag: -t, env: TRUSTED_SUBNET.
+	TrustedSubnet Subnet `json:"trusted_subnet"`
 }
 
 // New creates config with default values set.
@@ -101,4 +110,16 @@ func ParseFromFile(cfg *Config, filepath string) error {
 	}
 
 	return nil
+}
+
+type Subnet string
+
+// MustParse parses CIDR subnet string. Panics on error.
+func (s Subnet) MustParse() *net.IPNet {
+	_, subNet, err := net.ParseCIDR(string(s))
+	if err != nil {
+		logger.Log.Fatal("failed to parse Subnet", zap.Error(err))
+	}
+
+	return subNet
 }
