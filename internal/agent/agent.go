@@ -11,6 +11,7 @@ import (
 
 	"github.com/Dmitrevicz/gometrics/internal/agent/config"
 	"github.com/Dmitrevicz/gometrics/internal/model"
+	"github.com/Dmitrevicz/gometrics/pkg/hostip"
 )
 
 // Metrics data to be sent to the server.
@@ -47,6 +48,10 @@ func New(cfg *config.Config) (*Agent, error) {
 	poller := NewPoller(cfg.PollInterval)
 	gopsutilPoller := NewGopsutilPoller(cfg.PollInterval)
 
+	if err := detectHostIP(cfg); err != nil {
+		return nil, err
+	}
+
 	sender, err := NewSender(cfg, poller, gopsutilPoller)
 	if err != nil {
 		return nil, err
@@ -75,4 +80,23 @@ func (a *Agent) Shutdown(ctx context.Context) (err error) {
 	a.gopsutilPoller.Stop()
 
 	return a.sender.Shutdown(ctx)
+}
+
+// detectHostIP tries to detect host IP dynamically when Config.HostIP is empty.
+func detectHostIP(cfg *config.Config) (err error) {
+	if cfg.HostIP == "" {
+		// try to detect host IP
+		cfg.HostIP, err = hostip.FindHostIP()
+		if err != nil {
+			// return fmt.Errorf("attempt to detect host IP failed with error: %v", err)
+			log.Printf("attempt to detect host IP failed with error: %v", err)
+			return nil
+		}
+
+		log.Printf("Host IP detected dynamically: %s\n", cfg.HostIP)
+	} else {
+		log.Printf("Host IP retrieved from config file: %s\n", cfg.HostIP)
+	}
+
+	return nil
 }

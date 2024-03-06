@@ -303,7 +303,7 @@ func TrustedSubnetCheck(subnet *net.IPNet) gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context) {
-		// retreive real IP from header
+		// retrieve real IP from header
 		xRealIP := c.Request.Header.Get(XRealIPHeader)
 		fmt.Printf("TrustedSubnet middleware fired, header - %s: '%s'\n", XRealIPHeader, xRealIP)
 		if xRealIP == "" {

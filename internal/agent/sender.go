@@ -27,6 +27,7 @@ type sender struct {
 	reportInterval int
 	url            string
 	key            string
+	hostIP         string
 	batch          bool
 	poller         *poller
 	gopsutilPoller *gopsutilPoller
@@ -45,6 +46,10 @@ type sender struct {
 func NewSender(cfg *config.Config, poller *poller, gopsutilPoller *gopsutilPoller) (*sender, error) {
 	if cfg.RateLimit < 1 {
 		cfg.RateLimit = 1
+	}
+
+	if cfg.HostIP == "" {
+		log.Println("Couldn't detect host IP - X-Real-IP header will not be set on outgoing requests!")
 	}
 
 	var (
@@ -66,6 +71,7 @@ func NewSender(cfg *config.Config, poller *poller, gopsutilPoller *gopsutilPolle
 		reportInterval: cfg.ReportInterval,
 		url:            cfg.ServerURL,
 		key:            cfg.Key,
+		hostIP:         cfg.HostIP,
 		batch:          cfg.Batch,
 		poller:         poller,
 		gopsutilPoller: gopsutilPoller,
@@ -335,6 +341,10 @@ func (s *sender) sendMetrics(name string, value any) error {
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/json")
 
+	if s.hostIP != "" {
+		req.Header.Set(server.XRealIPHeader, s.hostIP)
+	}
+
 	// do request
 	resp, err := s.client.Do(req)
 	if err != nil {
@@ -420,6 +430,10 @@ func (s *sender) sendBatched(batch []model.Metrics) error {
 
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/json")
+
+	if s.hostIP != "" {
+		req.Header.Set(server.XRealIPHeader, s.hostIP)
+	}
 
 	if s.encryptor != nil {
 		// show via header that content is encrypted
