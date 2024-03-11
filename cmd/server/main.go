@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,6 +19,11 @@ import (
 	"github.com/Dmitrevicz/gometrics/internal/server/config"
 	"github.com/Dmitrevicz/gometrics/internal/storage"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
+
+	grpcServer "github.com/Dmitrevicz/gometrics/internal/server/grpc"
+	pb "github.com/Dmitrevicz/gometrics/internal/server/grpc/proto"
 )
 
 // build info
@@ -53,6 +59,9 @@ func main() {
 
 	// print config in purpose to debug autotests
 	logger.Log.Sugar().Infof("Server config: %+v", cfg)
+
+	// TODO: decide whether to run both grpc and http servers in parallel or only one of...
+	grpcStub(cfg)
 
 	srv := server.New(cfg)
 	s := &http.Server{
@@ -128,4 +137,32 @@ func waitShutdown(s *http.Server, dumper *server.Dumper, storage storage.Storage
 	}
 
 	logger.Log.Info("Server was stopped")
+}
+
+func grpcStub(cfg *config.Config) {
+	if cfg.ServerAddressGRPC == "" {
+		return
+	}
+
+	logger.Log.Info("gRPC port found in config, trying to start gRPC server...")
+
+	listen, err := net.Listen("tcp", cfg.ServerAddressGRPC)
+	if err != nil {
+		logger.Log.Sugar().Fatalf("Failed to listen on port '%s', err: %v", cfg.ServerAddressGRPC, err)
+	}
+
+	metricsServer := grpcServer.NewMetricsServer(cfg)
+
+	// TODO: interceptors
+	s := grpc.NewServer()
+	pb.RegisterMetricsServer(s, metricsServer)
+	reflection.Register(s)
+
+	logger.Log.Sugar().Infof("gRPC server started on %s", cfg.ServerAddressGRPC)
+	if err := s.Serve(listen); err != nil {
+		logger.Log.Sugar().Fatalf("gRPC server failed to Serve, err: %v", err)
+	}
+
+	// TODO: graceful shutdown for grpc server
+	// s.GracefulStop()
 }

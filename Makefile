@@ -9,6 +9,11 @@ test-cover:
 	go test ./... -coverprofile=profiles/cover.out > /dev/null; \
 	go tool cover -func profiles/cover.out | tail -n 1 | xargs
 
+gen-proto:
+	protoc --go_out=. --go_opt=paths=source_relative \
+		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
+		internal/server/grpc/proto/metrics.proto
+
 build-agent:
 	cd ./cmd/agent && \
 	go build -ldflags "-X main.buildVersion=$(BuildVersion) \

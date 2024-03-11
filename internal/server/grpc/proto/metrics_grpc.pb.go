@@ -20,22 +20,22 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
+	Metrics_Ping_FullMethodName        = "/grpc.Metrics/Ping"
 	Metrics_GetValue_FullMethodName    = "/grpc.Metrics/GetValue"
 	Metrics_Update_FullMethodName      = "/grpc.Metrics/Update"
 	Metrics_UpdateBatch_FullMethodName = "/grpc.Metrics/UpdateBatch"
-	Metrics_Ping_FullMethodName        = "/grpc.Metrics/Ping"
 )
 
 // MetricsClient is the client API for Metrics service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MetricsClient interface {
-	// rpc GetValue(Metric) returns (Metric);
-	GetValue(ctx context.Context, in *GetMetricRequest, opts ...grpc.CallOption) (*GetMetricResponse, error)
-	Update(ctx context.Context, in *Metric, opts ...grpc.CallOption) (*Metric, error)
-	UpdateBatch(ctx context.Context, in *UpdateBatchRequest, opts ...grpc.CallOption) (*UpdateBatchResponse, error)
 	// should I use Empty or define custom PingRequest message?
 	Ping(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*PingResponse, error)
+	// rpc GetValue(Metric) returns (Metric);
+	GetValue(ctx context.Context, in *GetMetricRequest, opts ...grpc.CallOption) (*Metric, error)
+	Update(ctx context.Context, in *Metric, opts ...grpc.CallOption) (*Metric, error)
+	UpdateBatch(ctx context.Context, in *UpdateBatchRequest, opts ...grpc.CallOption) (*UpdateBatchResponse, error)
 }
 
 type metricsClient struct {
@@ -46,8 +46,17 @@ func NewMetricsClient(cc grpc.ClientConnInterface) MetricsClient {
 	return &metricsClient{cc}
 }
 
-func (c *metricsClient) GetValue(ctx context.Context, in *GetMetricRequest, opts ...grpc.CallOption) (*GetMetricResponse, error) {
-	out := new(GetMetricResponse)
+func (c *metricsClient) Ping(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*PingResponse, error) {
+	out := new(PingResponse)
+	err := c.cc.Invoke(ctx, Metrics_Ping_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *metricsClient) GetValue(ctx context.Context, in *GetMetricRequest, opts ...grpc.CallOption) (*Metric, error) {
+	out := new(Metric)
 	err := c.cc.Invoke(ctx, Metrics_GetValue_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -73,25 +82,16 @@ func (c *metricsClient) UpdateBatch(ctx context.Context, in *UpdateBatchRequest,
 	return out, nil
 }
 
-func (c *metricsClient) Ping(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*PingResponse, error) {
-	out := new(PingResponse)
-	err := c.cc.Invoke(ctx, Metrics_Ping_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // MetricsServer is the server API for Metrics service.
 // All implementations must embed UnimplementedMetricsServer
 // for forward compatibility
 type MetricsServer interface {
-	// rpc GetValue(Metric) returns (Metric);
-	GetValue(context.Context, *GetMetricRequest) (*GetMetricResponse, error)
-	Update(context.Context, *Metric) (*Metric, error)
-	UpdateBatch(context.Context, *UpdateBatchRequest) (*UpdateBatchResponse, error)
 	// should I use Empty or define custom PingRequest message?
 	Ping(context.Context, *emptypb.Empty) (*PingResponse, error)
+	// rpc GetValue(Metric) returns (Metric);
+	GetValue(context.Context, *GetMetricRequest) (*Metric, error)
+	Update(context.Context, *Metric) (*Metric, error)
+	UpdateBatch(context.Context, *UpdateBatchRequest) (*UpdateBatchResponse, error)
 	mustEmbedUnimplementedMetricsServer()
 }
 
@@ -99,7 +99,10 @@ type MetricsServer interface {
 type UnimplementedMetricsServer struct {
 }
 
-func (UnimplementedMetricsServer) GetValue(context.Context, *GetMetricRequest) (*GetMetricResponse, error) {
+func (UnimplementedMetricsServer) Ping(context.Context, *emptypb.Empty) (*PingResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
+}
+func (UnimplementedMetricsServer) GetValue(context.Context, *GetMetricRequest) (*Metric, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetValue not implemented")
 }
 func (UnimplementedMetricsServer) Update(context.Context, *Metric) (*Metric, error) {
@@ -107,9 +110,6 @@ func (UnimplementedMetricsServer) Update(context.Context, *Metric) (*Metric, err
 }
 func (UnimplementedMetricsServer) UpdateBatch(context.Context, *UpdateBatchRequest) (*UpdateBatchResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateBatch not implemented")
-}
-func (UnimplementedMetricsServer) Ping(context.Context, *emptypb.Empty) (*PingResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
 }
 func (UnimplementedMetricsServer) mustEmbedUnimplementedMetricsServer() {}
 
@@ -122,6 +122,24 @@ type UnsafeMetricsServer interface {
 
 func RegisterMetricsServer(s grpc.ServiceRegistrar, srv MetricsServer) {
 	s.RegisterService(&Metrics_ServiceDesc, srv)
+}
+
+func _Metrics_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetricsServer).Ping(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Metrics_Ping_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetricsServer).Ping(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Metrics_GetValue_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -178,24 +196,6 @@ func _Metrics_UpdateBatch_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Metrics_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(emptypb.Empty)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MetricsServer).Ping(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Metrics_Ping_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MetricsServer).Ping(ctx, req.(*emptypb.Empty))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // Metrics_ServiceDesc is the grpc.ServiceDesc for Metrics service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -203,6 +203,10 @@ var Metrics_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "grpc.Metrics",
 	HandlerType: (*MetricsServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Ping",
+			Handler:    _Metrics_Ping_Handler,
+		},
 		{
 			MethodName: "GetValue",
 			Handler:    _Metrics_GetValue_Handler,
@@ -214,10 +218,6 @@ var Metrics_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateBatch",
 			Handler:    _Metrics_UpdateBatch_Handler,
-		},
-		{
-			MethodName: "Ping",
-			Handler:    _Metrics_Ping_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

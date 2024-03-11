@@ -20,6 +20,9 @@ type Config struct {
 	// address for the server to listen on
 	ServerAddress string `json:"address"`
 
+	// address for gRPC server to listen on
+	ServerAddressGRPC string `json:"address_grpc"`
+
 	// logger level
 	LogLevel string `json:"log_level"`
 
