@@ -6,20 +6,6 @@ package grpc;
 
 option go_package = "github.com/Dmitrevicz/gometrics/internal/server/grpc/proto";
 
-service Metrics {
-  // should I use Empty or define custom PingRequest message?
-  rpc Ping(google.protobuf.Empty) returns (PingResponse);
-
-  // rpc GetValue(Metric) returns (Metric);
-  rpc GetValue(GetMetricRequest) returns (Metric);
-  rpc Update(Metric) returns (Metric);
-  rpc UpdateBatch(UpdateBatchRequest) returns (UpdateBatchResponse);
-}
-
-message PingResponse {
-  string status = 1;
-}
-
 message Metric {
   string id = 1;             // имя метрики
   MetricType type = 2;       // параметр, принимающий значение gauge или counter
@@ -47,3 +33,15 @@ message UpdateBatchRequest {
 }
 
 message UpdateBatchResponse {}
+
+message PingResponse {
+  string status = 1;
+}
+
+service Metrics {
+  // should I use Empty or define custom PingRequest message?
+  rpc Ping(google.protobuf.Empty) returns (PingResponse);
+  rpc GetValue(GetMetricRequest) returns (Metric);
+  rpc Update(Metric) returns (Metric);
+  rpc UpdateBatch(UpdateBatchRequest) returns (UpdateBatchResponse);
+}

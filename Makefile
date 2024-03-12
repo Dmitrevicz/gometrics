@@ -1,4 +1,4 @@
-.PHONY: build-agent build-server test test-cover
+.PHONY: build-agent build-server test test-cover gen-proto
 
 # .SILENT:
 

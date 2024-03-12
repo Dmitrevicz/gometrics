@@ -70,53 +70,6 @@ func (MetricType) EnumDescriptor() ([]byte, []int) {
 	return file_internal_server_grpc_proto_metrics_proto_rawDescGZIP(), []int{0}
 }
 
-type PingResponse struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Status string `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
-}
-
-func (x *PingResponse) Reset() {
-	*x = PingResponse{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_server_grpc_proto_metrics_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *PingResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PingResponse) ProtoMessage() {}
-
-func (x *PingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_server_grpc_proto_metrics_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PingResponse.ProtoReflect.Descriptor instead.
-func (*PingResponse) Descriptor() ([]byte, []int) {
-	return file_internal_server_grpc_proto_metrics_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *PingResponse) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
 type Metric struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -131,7 +84,7 @@ type Metric struct {
 func (x *Metric) Reset() {
 	*x = Metric{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_server_grpc_proto_metrics_proto_msgTypes[1]
+		mi := &file_internal_server_grpc_proto_metrics_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -144,7 +97,7 @@ func (x *Metric) String() string {
 func (*Metric) ProtoMessage() {}
 
 func (x *Metric) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_server_grpc_proto_metrics_proto_msgTypes[1]
+	mi := &file_internal_server_grpc_proto_metrics_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -157,7 +110,7 @@ func (x *Metric) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Metric.ProtoReflect.Descriptor instead.
 func (*Metric) Descriptor() ([]byte, []int) {
-	return file_internal_server_grpc_proto_metrics_proto_rawDescGZIP(), []int{1}
+	return file_internal_server_grpc_proto_metrics_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Metric) GetId() string {
@@ -200,7 +153,7 @@ type GetMetricRequest struct {
 func (x *GetMetricRequest) Reset() {
 	*x = GetMetricRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_server_grpc_proto_metrics_proto_msgTypes[2]
+		mi := &file_internal_server_grpc_proto_metrics_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -213,7 +166,7 @@ func (x *GetMetricRequest) String() string {
 func (*GetMetricRequest) ProtoMessage() {}
 
 func (x *GetMetricRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_server_grpc_proto_metrics_proto_msgTypes[2]
+	mi := &file_internal_server_grpc_proto_metrics_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -226,7 +179,7 @@ func (x *GetMetricRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMetricRequest.ProtoReflect.Descriptor instead.
 func (*GetMetricRequest) Descriptor() ([]byte, []int) {
-	return file_internal_server_grpc_proto_metrics_proto_rawDescGZIP(), []int{2}
+	return file_internal_server_grpc_proto_metrics_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetMetricRequest) GetId() string {
@@ -254,7 +207,7 @@ type UpdateBatchRequest struct {
 func (x *UpdateBatchRequest) Reset() {
 	*x = UpdateBatchRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_server_grpc_proto_metrics_proto_msgTypes[3]
+		mi := &file_internal_server_grpc_proto_metrics_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -267,7 +220,7 @@ func (x *UpdateBatchRequest) String() string {
 func (*UpdateBatchRequest) ProtoMessage() {}
 
 func (x *UpdateBatchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_server_grpc_proto_metrics_proto_msgTypes[3]
+	mi := &file_internal_server_grpc_proto_metrics_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -280,7 +233,7 @@ func (x *UpdateBatchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateBatchRequest.ProtoReflect.Descriptor instead.
 func (*UpdateBatchRequest) Descriptor() ([]byte, []int) {
-	return file_internal_server_grpc_proto_metrics_proto_rawDescGZIP(), []int{3}
+	return file_internal_server_grpc_proto_metrics_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *UpdateBatchRequest) GetMetrics() []*Metric {
@@ -299,7 +252,7 @@ type UpdateBatchResponse struct {
 func (x *UpdateBatchResponse) Reset() {
 	*x = UpdateBatchResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_server_grpc_proto_metrics_proto_msgTypes[4]
+		mi := &file_internal_server_grpc_proto_metrics_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -312,7 +265,7 @@ func (x *UpdateBatchResponse) String() string {
 func (*UpdateBatchResponse) ProtoMessage() {}
 
 func (x *UpdateBatchResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_server_grpc_proto_metrics_proto_msgTypes[4]
+	mi := &file_internal_server_grpc_proto_metrics_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -325,7 +278,54 @@ func (x *UpdateBatchResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateBatchResponse.ProtoReflect.Descriptor instead.
 func (*UpdateBatchResponse) Descriptor() ([]byte, []int) {
+	return file_internal_server_grpc_proto_metrics_proto_rawDescGZIP(), []int{3}
+}
+
+type PingResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Status string `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+}
+
+func (x *PingResponse) Reset() {
+	*x = PingResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_internal_server_grpc_proto_metrics_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *PingResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PingResponse) ProtoMessage() {}
+
+func (x *PingResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_server_grpc_proto_metrics_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PingResponse.ProtoReflect.Descriptor instead.
+func (*PingResponse) Descriptor() ([]byte, []int) {
 	return file_internal_server_grpc_proto_metrics_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *PingResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
 }
 
 var File_internal_server_grpc_proto_metrics_proto protoreflect.FileDescriptor
@@ -335,28 +335,28 @@ var file_internal_server_grpc_proto_metrics_proto_rawDesc = []byte{
 	0x72, 0x2f, 0x67, 0x72, 0x70, 0x63, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x6d, 0x65, 0x74,
 	0x72, 0x69, 0x63, 0x73, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x04, 0x67, 0x72, 0x70, 0x63,
 	0x1a, 0x1b, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75,
-	0x66, 0x2f, 0x65, 0x6d, 0x70, 0x74, 0x79, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x26, 0x0a,
-	0x0c, 0x50, 0x69, 0x6e, 0x67, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x16, 0x0a,
-	0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x73,
-	0x74, 0x61, 0x74, 0x75, 0x73, 0x22, 0x88, 0x01, 0x0a, 0x06, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63,
-	0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64,
-	0x12, 0x24, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x10,
-	0x2e, 0x67, 0x72, 0x70, 0x63, 0x2e, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x54, 0x79, 0x70, 0x65,
-	0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x19, 0x0a, 0x05, 0x64, 0x65, 0x6c, 0x74, 0x61, 0x18,
-	0x03, 0x20, 0x01, 0x28, 0x03, 0x48, 0x00, 0x52, 0x05, 0x64, 0x65, 0x6c, 0x74, 0x61, 0x88, 0x01,
-	0x01, 0x12, 0x19, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x04, 0x20, 0x01, 0x28, 0x01,
-	0x48, 0x01, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x88, 0x01, 0x01, 0x42, 0x08, 0x0a, 0x06,
-	0x5f, 0x64, 0x65, 0x6c, 0x74, 0x61, 0x42, 0x08, 0x0a, 0x06, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65,
-	0x22, 0x48, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x52, 0x65, 0x71,
-	0x75, 0x65, 0x73, 0x74, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
-	0x52, 0x02, 0x69, 0x64, 0x12, 0x24, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x02, 0x20, 0x01,
-	0x28, 0x0e, 0x32, 0x10, 0x2e, 0x67, 0x72, 0x70, 0x63, 0x2e, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63,
-	0x54, 0x79, 0x70, 0x65, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3c, 0x0a, 0x12, 0x55, 0x70,
-	0x64, 0x61, 0x74, 0x65, 0x42, 0x61, 0x74, 0x63, 0x68, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-	0x12, 0x26, 0x0a, 0x07, 0x6d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28,
-	0x0b, 0x32, 0x0c, 0x2e, 0x67, 0x72, 0x70, 0x63, 0x2e, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x52,
-	0x07, 0x6d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x22, 0x15, 0x0a, 0x13, 0x55, 0x70, 0x64, 0x61,
-	0x74, 0x65, 0x42, 0x61, 0x74, 0x63, 0x68, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2a,
+	0x66, 0x2f, 0x65, 0x6d, 0x70, 0x74, 0x79, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x88, 0x01,
+	0x0a, 0x06, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x12, 0x24, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x10, 0x2e, 0x67, 0x72, 0x70, 0x63, 0x2e, 0x4d, 0x65,
+	0x74, 0x72, 0x69, 0x63, 0x54, 0x79, 0x70, 0x65, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x19,
+	0x0a, 0x05, 0x64, 0x65, 0x6c, 0x74, 0x61, 0x18, 0x03, 0x20, 0x01, 0x28, 0x03, 0x48, 0x00, 0x52,
+	0x05, 0x64, 0x65, 0x6c, 0x74, 0x61, 0x88, 0x01, 0x01, 0x12, 0x19, 0x0a, 0x05, 0x76, 0x61, 0x6c,
+	0x75, 0x65, 0x18, 0x04, 0x20, 0x01, 0x28, 0x01, 0x48, 0x01, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75,
+	0x65, 0x88, 0x01, 0x01, 0x42, 0x08, 0x0a, 0x06, 0x5f, 0x64, 0x65, 0x6c, 0x74, 0x61, 0x42, 0x08,
+	0x0a, 0x06, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x22, 0x48, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x4d,
+	0x65, 0x74, 0x72, 0x69, 0x63, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x0e, 0x0a, 0x02,
+	0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x12, 0x24, 0x0a, 0x04,
+	0x74, 0x79, 0x70, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x10, 0x2e, 0x67, 0x72, 0x70,
+	0x63, 0x2e, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x54, 0x79, 0x70, 0x65, 0x52, 0x04, 0x74, 0x79,
+	0x70, 0x65, 0x22, 0x3c, 0x0a, 0x12, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x42, 0x61, 0x74, 0x63,
+	0x68, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x26, 0x0a, 0x07, 0x6d, 0x65, 0x74, 0x72,
+	0x69, 0x63, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0c, 0x2e, 0x67, 0x72, 0x70, 0x63,
+	0x2e, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x52, 0x07, 0x6d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73,
+	0x22, 0x15, 0x0a, 0x13, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x42, 0x61, 0x74, 0x63, 0x68, 0x52,
+	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x26, 0x0a, 0x0c, 0x50, 0x69, 0x6e, 0x67, 0x52,
+	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75,
+	0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x2a,
 	0x35, 0x0a, 0x0a, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x54, 0x79, 0x70, 0x65, 0x12, 0x0f, 0x0a,
 	0x0b, 0x55, 0x4e, 0x53, 0x50, 0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x0b,
 	0x0a, 0x07, 0x43, 0x4f, 0x55, 0x4e, 0x54, 0x45, 0x52, 0x10, 0x01, 0x12, 0x09, 0x0a, 0x05, 0x47,
@@ -397,25 +397,25 @@ var file_internal_server_grpc_proto_metrics_proto_enumTypes = make([]protoimpl.E
 var file_internal_server_grpc_proto_metrics_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_internal_server_grpc_proto_metrics_proto_goTypes = []interface{}{
 	(MetricType)(0),             // 0: grpc.MetricType
-	(*PingResponse)(nil),        // 1: grpc.PingResponse
-	(*Metric)(nil),              // 2: grpc.Metric
-	(*GetMetricRequest)(nil),    // 3: grpc.GetMetricRequest
-	(*UpdateBatchRequest)(nil),  // 4: grpc.UpdateBatchRequest
-	(*UpdateBatchResponse)(nil), // 5: grpc.UpdateBatchResponse
+	(*Metric)(nil),              // 1: grpc.Metric
+	(*GetMetricRequest)(nil),    // 2: grpc.GetMetricRequest
+	(*UpdateBatchRequest)(nil),  // 3: grpc.UpdateBatchRequest
+	(*UpdateBatchResponse)(nil), // 4: grpc.UpdateBatchResponse
+	(*PingResponse)(nil),        // 5: grpc.PingResponse
 	(*emptypb.Empty)(nil),       // 6: google.protobuf.Empty
 }
 var file_internal_server_grpc_proto_metrics_proto_depIdxs = []int32{
 	0, // 0: grpc.Metric.type:type_name -> grpc.MetricType
 	0, // 1: grpc.GetMetricRequest.type:type_name -> grpc.MetricType
-	2, // 2: grpc.UpdateBatchRequest.metrics:type_name -> grpc.Metric
+	1, // 2: grpc.UpdateBatchRequest.metrics:type_name -> grpc.Metric
 	6, // 3: grpc.Metrics.Ping:input_type -> google.protobuf.Empty
-	3, // 4: grpc.Metrics.GetValue:input_type -> grpc.GetMetricRequest
-	2, // 5: grpc.Metrics.Update:input_type -> grpc.Metric
-	4, // 6: grpc.Metrics.UpdateBatch:input_type -> grpc.UpdateBatchRequest
-	1, // 7: grpc.Metrics.Ping:output_type -> grpc.PingResponse
-	2, // 8: grpc.Metrics.GetValue:output_type -> grpc.Metric
-	2, // 9: grpc.Metrics.Update:output_type -> grpc.Metric
-	5, // 10: grpc.Metrics.UpdateBatch:output_type -> grpc.UpdateBatchResponse
+	2, // 4: grpc.Metrics.GetValue:input_type -> grpc.GetMetricRequest
+	1, // 5: grpc.Metrics.Update:input_type -> grpc.Metric
+	3, // 6: grpc.Metrics.UpdateBatch:input_type -> grpc.UpdateBatchRequest
+	5, // 7: grpc.Metrics.Ping:output_type -> grpc.PingResponse
+	1, // 8: grpc.Metrics.GetValue:output_type -> grpc.Metric
+	1, // 9: grpc.Metrics.Update:output_type -> grpc.Metric
+	4, // 10: grpc.Metrics.UpdateBatch:output_type -> grpc.UpdateBatchResponse
 	7, // [7:11] is the sub-list for method output_type
 	3, // [3:7] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
@@ -430,18 +430,6 @@ func file_internal_server_grpc_proto_metrics_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_internal_server_grpc_proto_metrics_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PingResponse); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_internal_server_grpc_proto_metrics_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Metric); i {
 			case 0:
 				return &v.state
@@ -453,7 +441,7 @@ func file_internal_server_grpc_proto_metrics_proto_init() {
 				return nil
 			}
 		}
-		file_internal_server_grpc_proto_metrics_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_server_grpc_proto_metrics_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetMetricRequest); i {
 			case 0:
 				return &v.state
@@ -465,7 +453,7 @@ func file_internal_server_grpc_proto_metrics_proto_init() {
 				return nil
 			}
 		}
-		file_internal_server_grpc_proto_metrics_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_server_grpc_proto_metrics_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*UpdateBatchRequest); i {
 			case 0:
 				return &v.state
@@ -477,7 +465,7 @@ func file_internal_server_grpc_proto_metrics_proto_init() {
 				return nil
 			}
 		}
-		file_internal_server_grpc_proto_metrics_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_server_grpc_proto_metrics_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*UpdateBatchResponse); i {
 			case 0:
 				return &v.state
@@ -489,8 +477,20 @@ func file_internal_server_grpc_proto_metrics_proto_init() {
 				return nil
 			}
 		}
+		file_internal_server_grpc_proto_metrics_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*PingResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
-	file_internal_server_grpc_proto_metrics_proto_msgTypes[1].OneofWrappers = []interface{}{}
+	file_internal_server_grpc_proto_metrics_proto_msgTypes[0].OneofWrappers = []interface{}{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

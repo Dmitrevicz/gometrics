@@ -32,7 +32,6 @@ const (
 type MetricsClient interface {
 	// should I use Empty or define custom PingRequest message?
 	Ping(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*PingResponse, error)
-	// rpc GetValue(Metric) returns (Metric);
 	GetValue(ctx context.Context, in *GetMetricRequest, opts ...grpc.CallOption) (*Metric, error)
 	Update(ctx context.Context, in *Metric, opts ...grpc.CallOption) (*Metric, error)
 	UpdateBatch(ctx context.Context, in *UpdateBatchRequest, opts ...grpc.CallOption) (*UpdateBatchResponse, error)
@@ -88,7 +87,6 @@ func (c *metricsClient) UpdateBatch(ctx context.Context, in *UpdateBatchRequest,
 type MetricsServer interface {
 	// should I use Empty or define custom PingRequest message?
 	Ping(context.Context, *emptypb.Empty) (*PingResponse, error)
-	// rpc GetValue(Metric) returns (Metric);
 	GetValue(context.Context, *GetMetricRequest) (*Metric, error)
 	Update(context.Context, *Metric) (*Metric, error)
 	UpdateBatch(context.Context, *UpdateBatchRequest) (*UpdateBatchResponse, error)

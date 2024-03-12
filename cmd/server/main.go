@@ -153,8 +153,7 @@ func grpcStub(cfg *config.Config) {
 
 	metricsServer := grpcServer.NewMetricsServer(cfg)
 
-	// TODO: interceptors
-	s := grpc.NewServer()
+	s := grpc.NewServer(grpcServer.Interceptors(logger.Log)...)
 	pb.RegisterMetricsServer(s, metricsServer)
 	reflection.Register(s)
 
