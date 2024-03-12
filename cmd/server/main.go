@@ -60,9 +60,23 @@ func main() {
 	// print config in purpose to debug autotests
 	logger.Log.Sugar().Infof("Server config: %+v", cfg)
 
-	// TODO: decide whether to run both grpc and http servers in parallel or only one of...
-	grpcStub(cfg)
+	// TODO: may refactor later :)
+	run(cfg)
+}
 
+// run only one server at a time - either http or grpc.
+//
+// Smth. like https://github.com/oklog/run can be used to run both servers
+// together simultaneously.
+func run(cfg *config.Config) {
+	if cfg.ServerAddressGRPC == "" {
+		runHTTP(cfg)
+	} else {
+		runGRPC(cfg)
+	}
+}
+
+func runHTTP(cfg *config.Config) {
 	srv := server.New(cfg)
 	s := &http.Server{
 		Addr:    cfg.ServerAddress,
@@ -115,6 +129,7 @@ func waitShutdown(s *http.Server, dumper *server.Dumper, storage storage.Storage
 	}
 
 	// XXX: can I use same context from before or should create new like this?
+	// [Got answer: "Create new, like already did"]
 	ctxDumper, cancelCtxDumper := context.WithTimeout(context.Background(), maxShutdownTimeout/3)
 	defer cancelCtxDumper()
 
@@ -124,6 +139,7 @@ func waitShutdown(s *http.Server, dumper *server.Dumper, storage storage.Storage
 	}
 
 	// XXX: can I use same context from before or should create new like this?
+	// [Got answer: "Create new, like already did"]
 	ctxStorage, cancelCtxStorage := context.WithTimeout(context.Background(), maxShutdownTimeout/3)
 	defer cancelCtxStorage()
 
@@ -139,7 +155,7 @@ func waitShutdown(s *http.Server, dumper *server.Dumper, storage storage.Storage
 	logger.Log.Info("Server was stopped")
 }
 
-func grpcStub(cfg *config.Config) {
+func runGRPC(cfg *config.Config) {
 	if cfg.ServerAddressGRPC == "" {
 		return
 	}
@@ -157,11 +173,55 @@ func grpcStub(cfg *config.Config) {
 	pb.RegisterMetricsServer(s, metricsServer)
 	reflection.Register(s)
 
-	logger.Log.Sugar().Infof("gRPC server started on %s", cfg.ServerAddressGRPC)
-	if err := s.Serve(listen); err != nil {
-		logger.Log.Sugar().Fatalf("gRPC server failed to Serve, err: %v", err)
+	go func() {
+		logger.Log.Sugar().Infof("gRPC server started on %s", cfg.ServerAddressGRPC)
+		if err := s.Serve(listen); err != nil {
+			logger.Log.Sugar().Fatalf("gRPC server failed to Serve, err: %v", err)
+		}
+	}()
+
+	waitShutdownGRPC(s, metricsServer.Storage)
+}
+
+// waitShutdownGRPC waits for exit and gracefully shuts down gRPC server.
+func waitShutdownGRPC(s *grpc.Server, storage storage.Storage) {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+	sig := <-quit
+
+	stoppers := []func(timeout time.Duration) error{
+		// 1. Shutdown server
+		func(t time.Duration) error {
+			ctx, cancel := context.WithTimeout(context.Background(), t)
+			defer cancel()
+			return grpcServer.ShutdownWithContext(ctx, s)
+		},
+		// 2. Close storage
+		func(t time.Duration) error {
+			ctx, cancel := context.WithTimeout(context.Background(), t)
+			defer cancel()
+			return storage.Close(ctx)
+		},
 	}
 
-	// TODO: graceful shutdown for grpc server
-	// s.GracefulStop()
+	const maxShutdownTimeout = 10 * time.Second
+	tn := maxShutdownTimeout / time.Duration(len(stoppers))
+	logger.Log.Info("Server caught os signal. Starting shutdown...",
+		zap.String("signal", sig.String()),
+		zap.Duration("timeout_max", maxShutdownTimeout),
+		zap.Duration("timeout_each", tn),
+	)
+
+	var errs []error
+	for _, stop := range stoppers {
+		if err := stop(tn); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if len(errs) > 0 {
+		logger.Log.Fatal("Server was stopped, but errors occurred", zap.Errors("errors", errs))
+	}
+
+	logger.Log.Info("Server was stopped")
 }

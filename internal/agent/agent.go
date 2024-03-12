@@ -20,15 +20,15 @@ type Metrics struct {
 	Counters map[string]model.Counter
 }
 
-// Merge adds values of maps from m2 to m1.
-// Panic will be thrown if m1 is nil.
-func (m1 *Metrics) Merge(m2 *Metrics) {
+// Merge adds values of maps from m2 to m.
+// Panic will be thrown if m is nil.
+func (m *Metrics) Merge(m2 *Metrics) {
 	for name, value := range m2.Gauges {
-		m1.Gauges[name] = value
+		m.Gauges[name] = value
 	}
 
 	for name, value := range m2.Counters {
-		m1.Counters[name] = value
+		m.Counters[name] = value
 	}
 }
 
