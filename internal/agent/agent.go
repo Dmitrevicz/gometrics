@@ -32,12 +32,17 @@ func (m1 *Metrics) Merge(m2 *Metrics) {
 	}
 }
 
+func (m *Metrics) Len() int {
+	return len(m.Counters) + len(m.Gauges)
+}
+
 // Agent is responsible for gathering and sending metrics to server.
 type Agent struct {
 	poller         *poller
 	gopsutilPoller *gopsutilPoller
 
-	sender *sender
+	// sender *sender
+	sender MetricsSender
 }
 
 // New creates new agent service.
@@ -48,11 +53,17 @@ func New(cfg *config.Config) (*Agent, error) {
 	poller := NewPoller(cfg.PollInterval)
 	gopsutilPoller := NewGopsutilPoller(cfg.PollInterval)
 
-	if err := detectHostIP(cfg); err != nil {
+	var err error
+	if err = detectHostIP(cfg); err != nil {
 		return nil, err
 	}
 
-	sender, err := NewSender(cfg, poller, gopsutilPoller)
+	var sender MetricsSender
+	if cfg.GRPCServerURL != "" {
+		sender, err = NewSenderGRPC(cfg, poller, gopsutilPoller)
+	} else {
+		sender, err = NewSender(cfg, poller, gopsutilPoller)
+	}
 	if err != nil {
 		return nil, err
 	}
