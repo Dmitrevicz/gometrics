@@ -74,6 +74,11 @@ func parseFlags(cfg *config.Config) error {
 	flag.IntVar(&cfg.StoreInterval, "i", cfg.StoreInterval, "interval in seconds for current metrics data to be dumped into file")
 	flag.BoolVar(&cfg.Restore, "r", cfg.Restore, "shows if data restore from file should be made")
 
+	flag.Func("t", "trusted subnet, e.g. 192.0.2.32/24", func(s string) error {
+		cfg.TrustedSubnet = config.Subnet(strings.TrimSpace(s))
+		return nil
+	})
+
 	flag.Parse()
 
 	// get from env if exist
@@ -99,6 +104,10 @@ func parseFlags(cfg *config.Config) error {
 
 	if e, ok := os.LookupEnv("CRYPTO_KEY"); ok {
 		cfg.CryptoKey = e
+	}
+
+	if e, ok := os.LookupEnv("TRUSTED_SUBNET"); ok {
+		cfg.TrustedSubnet = config.Subnet(e)
 	}
 
 	if e, ok := os.LookupEnv("STORE_INTERVAL"); ok {

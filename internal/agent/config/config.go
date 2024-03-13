@@ -38,6 +38,9 @@ type Config struct {
 	// path to a file with the key. Flag: -crypto-key, env: CRYPTO_KEY.
 	//  > Шифруйте сообщения от агента к серверу с помощью ключей.
 	CryptoKey string `json:"crypto_key"`
+
+	// HostIP is an IP of current host.
+	HostIP string `json:"host_ip"`
 }
 
 // New creates config with default values set.

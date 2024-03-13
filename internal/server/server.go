@@ -45,6 +45,10 @@ func New(cfg *config.Config) *server {
 	r.Use(RequestLogger())          // custom logger middleware from the lesson
 	// r.Use(gin.Logger()) // gin.Logger can be used, but custom RequestLogger is preferred now in learning purposes
 
+	if cfg.TrustedSubnet != "" {
+		r.Use(TrustedSubnetCheck(cfg.TrustedSubnet.MustParse()))
+	}
+
 	// Data sent from agent is compressed first and then encrypted
 	// so order of actions to revert this matters.
 	// Server have to decrypt first and then decompress.

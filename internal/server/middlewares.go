@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -286,5 +287,48 @@ func DecryptRSA(decryptor *encryptor.Decryptor) gin.HandlerFunc {
 		}
 
 		c.Request.Body = io.NopCloser(bytes.NewBuffer(plainBody))
+	}
+}
+
+const XRealIPHeader = "X-Real-IP"
+
+var errSubnetNotAllowed = errors.New("subnet is not allowed")
+
+// TrustedSubnetCheck is a middleware to check whether Agent's IP is in a white-list
+// of allowed IPs.
+func TrustedSubnetCheck(subnet *net.IPNet) gin.HandlerFunc {
+	if subnet == nil {
+		logger.Log.DPanic("bad TrustedSubnet initialization - nil passed as *net.IPNet subnet")
+		return func(c *gin.Context) {}
+	}
+
+	return func(c *gin.Context) {
+		// retrieve real IP from header
+		xRealIP := c.Request.Header.Get(XRealIPHeader)
+		fmt.Printf("TrustedSubnet middleware fired, header - %s: '%s'\n", XRealIPHeader, xRealIP)
+		if xRealIP == "" {
+			err := fmt.Errorf("%v: empty IP in header", errSubnetNotAllowed)
+			logger.Log.Info("TrustedSubnet check didn't pass", zap.Error(err))
+			_ = c.AbortWithError(http.StatusForbidden, err)
+			return
+		}
+
+		ip := net.ParseIP(xRealIP)
+		if ip == nil {
+			err := fmt.Errorf("%v: IP parse failed", errSubnetNotAllowed)
+			logger.Log.Info("TrustedSubnet check didn't pass", zap.Error(err))
+			_ = c.AbortWithError(http.StatusForbidden, err)
+			return
+		}
+
+		// check whether client's IP is in allowed subnet
+		if !subnet.Contains(ip) {
+			logger.Log.Info("TrustedSubnet check didn't pass",
+				zap.Error(errSubnetNotAllowed),
+				zap.String("ip", ip.String()),
+			)
+			_ = c.AbortWithError(http.StatusForbidden, errSubnetNotAllowed)
+			return
+		}
 	}
 }
