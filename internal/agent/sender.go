@@ -23,6 +23,11 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+type MetricsSender interface {
+	Start()
+	Shutdown(ctx context.Context) error
+}
+
 type sender struct {
 	reportInterval int
 	url            string

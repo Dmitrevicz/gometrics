@@ -13,8 +13,11 @@ type Config struct {
 	// ConfigPath path to config file
 	ConfigPath string `json:"config"`
 
-	// Server address for metrics to be sent to
+	// Server (http) address for metrics to be sent to
 	ServerURL string `json:"address"`
+
+	// GRPCServerURL shows if grpc client must be used.
+	GRPCServerURL string `json:"grpc"`
 
 	// Interval in seconds
 	PollInterval int `json:"poll_interval"`

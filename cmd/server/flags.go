@@ -66,6 +66,7 @@ func parseFlags(cfg *config.Config) error {
 
 	// other flags
 	flag.StringVar(&cfg.ServerAddress, "a", cfg.ServerAddress, "TCP address for the server to listen on")
+	flag.StringVar(&cfg.ServerAddressGRPC, "grpc", cfg.ServerAddressGRPC, "TCP address for gRPC server to listen on")
 	flag.StringVar(&cfg.LogLevel, "loglvl", cfg.LogLevel, "logger level")
 	flag.StringVar(&cfg.FileStoragePath, "f", cfg.FileStoragePath, "file path for metrics data to be dumped in")
 	flag.StringVar(&cfg.DatabaseDSN, "d", cfg.DatabaseDSN, "data source name to connect to database")
@@ -84,6 +85,10 @@ func parseFlags(cfg *config.Config) error {
 	// get from env if exist
 	if e, ok := os.LookupEnv("ADDRESS"); ok {
 		cfg.ServerAddress = e
+	}
+
+	if e, ok := os.LookupEnv("GRPC"); ok {
+		cfg.ServerAddressGRPC = e
 	}
 
 	if e, ok := os.LookupEnv("LOG_LVL"); ok {

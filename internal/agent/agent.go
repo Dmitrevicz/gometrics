@@ -20,16 +20,20 @@ type Metrics struct {
 	Counters map[string]model.Counter
 }
 
-// Merge adds values of maps from m2 to m1.
-// Panic will be thrown if m1 is nil.
-func (m1 *Metrics) Merge(m2 *Metrics) {
+// Merge adds values of maps from m2 to m.
+// Panic will be thrown if m is nil.
+func (m *Metrics) Merge(m2 *Metrics) {
 	for name, value := range m2.Gauges {
-		m1.Gauges[name] = value
+		m.Gauges[name] = value
 	}
 
 	for name, value := range m2.Counters {
-		m1.Counters[name] = value
+		m.Counters[name] = value
 	}
+}
+
+func (m *Metrics) Len() int {
+	return len(m.Counters) + len(m.Gauges)
 }
 
 // Agent is responsible for gathering and sending metrics to server.
@@ -37,7 +41,8 @@ type Agent struct {
 	poller         *poller
 	gopsutilPoller *gopsutilPoller
 
-	sender *sender
+	// sender *sender
+	sender MetricsSender
 }
 
 // New creates new agent service.
@@ -48,11 +53,17 @@ func New(cfg *config.Config) (*Agent, error) {
 	poller := NewPoller(cfg.PollInterval)
 	gopsutilPoller := NewGopsutilPoller(cfg.PollInterval)
 
-	if err := detectHostIP(cfg); err != nil {
+	var err error
+	if err = detectHostIP(cfg); err != nil {
 		return nil, err
 	}
 
-	sender, err := NewSender(cfg, poller, gopsutilPoller)
+	var sender MetricsSender
+	if cfg.GRPCServerURL != "" {
+		sender, err = NewSenderGRPC(cfg, poller, gopsutilPoller)
+	} else {
+		sender, err = NewSender(cfg, poller, gopsutilPoller)
+	}
 	if err != nil {
 		return nil, err
 	}

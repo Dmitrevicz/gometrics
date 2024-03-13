@@ -62,6 +62,7 @@ func parseFlags(cfg *config.Config) {
 
 	// other flags
 	// flag.StringVar(&urlServer, "a", "http://localhost:8080", "api endpoint address")
+	flag.StringVar(&cfg.GRPCServerURL, "grpc", cfg.GRPCServerURL, "server address that gRPC client must call to")
 	flag.StringVar(&cfg.Key, "k", cfg.Key, "hash key")
 	flag.IntVar(&cfg.PollInterval, "p", cfg.PollInterval, "poll interval in seconds")
 	flag.IntVar(&cfg.ReportInterval, "r", cfg.ReportInterval, "report interval in seconds")
@@ -105,6 +106,10 @@ func parseEnvs(cfg *config.Config) {
 			log.Printf("Provided ENV ADDRESS=\"%s\" lacks protocol scheme, attempt to fix it will be made\n", e)
 			cfg.ServerURL = "http://" + e
 		}
+	}
+
+	if e, ok := os.LookupEnv("GRPC"); ok {
+		cfg.GRPCServerURL = e
 	}
 
 	if e, ok := os.LookupEnv("KEY"); ok {

@@ -19,6 +19,7 @@ import (
 	"github.com/Dmitrevicz/gometrics/pkg/encryptor"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // RequestLogger — middleware-logger for incoming HTTP-requests.
@@ -35,6 +36,45 @@ func RequestLogger() gin.HandlerFunc {
 			zap.Int("size", c.Writer.Size()),
 			zap.Duration("duration", time.Since(ts)),
 		)
+	}
+}
+
+// LogErrors writes errors to stderr.
+func LogErrors() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+
+		// some middlewares may modify this values
+		path := c.Request.URL.Path
+		query := c.Request.URL.RawQuery
+
+		c.Next()
+
+		errs := c.Errors.ByType(gin.ErrorTypePrivate)
+		if len(errs) == 0 {
+			return
+		}
+
+		end := time.Now()
+		latency := end.Sub(start)
+
+		fields := []zapcore.Field{
+			zap.Int("status", c.Writer.Status()),
+			zap.String("method", c.Request.Method),
+			zap.String("path", path),
+			zap.String("query", query),
+			zap.Duration("latency", latency),
+		}
+
+		errMsg := errs[0].Error()
+		// if many - print all of them
+		if len(errs) > 1 {
+			fields = append(fields, zap.Strings("errors", c.Errors.Errors()))
+		}
+
+		// Workaround: WithOptions allows to skip, in this case, unnecessary stacktrace output
+		logger.Log.WithOptions(zap.AddStacktrace(zap.DPanicLevel)).Error(errMsg, fields...)
+
 	}
 }
 
